@@ -1,0 +1,13 @@
+{
+  "name": "local/EkoZavrsni",
+  "description": "Minimal PHP MVC skeleton (Oracle)",
+  "type": "project",
+  "require": {
+    "php": ">=8.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/"
+    }
+  }
+}
