@@ -25,4 +25,16 @@ final class Response
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
   }
+
+  public function url(string $path): string
+  {
+    $base = rtrim(getenv('APP_URL') ?: '', '/');
+    return $base . '/' . ltrim($path, '/');
+  }
+
+  public function redirect(string $path): void
+  {
+    header('Location: ' . $this->url($path));
+    exit;
+  }
 }

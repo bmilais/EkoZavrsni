@@ -13,7 +13,8 @@ final class Db
 
     $cfg = require __DIR__ . '/../../config/database.php';
 
-    $dsn = "oci:dbname=//{$cfg['host']}:{$cfg['port']}/{$cfg['service_name']};charset={$cfg['charset']}";
+    $tns = "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={$cfg['host']})(PORT={$cfg['port']}))(CONNECT_DATA=(SID={$cfg['sid']})))";
+    $dsn = "oci:dbname={$tns};charset={$cfg['charset']}";
 
     self::$conn = new \PDO($dsn, $cfg['username'], $cfg['password'], [
       \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
@@ -26,7 +27,7 @@ final class Db
   public static function ping(): bool
   {
     try {
-      self::connect()->query('SELECT 1');
+      self::connect()->query('SELECT 1 FROM DUAL');
       return true;
     } catch (\Throwable) {
       return false;

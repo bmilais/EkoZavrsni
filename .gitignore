@@ -4,3 +4,4 @@ node_modules/
 storage/logs/*
 storage/uploads/*
 !.gitkeep
+sql/*

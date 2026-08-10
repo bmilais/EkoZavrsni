@@ -32,4 +32,12 @@ final class Request
   {
     return $_POST[$key] ?? $default;
   }
+
+  public function file(string $key): ?array
+  {
+    if (isset($_FILES[$key]) && $_FILES[$key]['error'] === UPLOAD_ERR_OK) {
+      return $_FILES[$key];
+    }
+    return null;
+  }
 }

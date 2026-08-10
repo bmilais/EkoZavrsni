@@ -1,9 +1,11 @@
 {
-  "name": "local/EkoZavrsni",
+  "name": "local/eko-zavrsni",
   "description": "Minimal PHP MVC skeleton (Oracle)",
   "type": "project",
   "require": {
-    "php": ">=8.1"
+    "php": ">=8.1",
+    "phpoffice/phpspreadsheet": "^5.8",
+    "dompdf/dompdf": "^3.1"
   },
   "autoload": {
     "psr-4": {
