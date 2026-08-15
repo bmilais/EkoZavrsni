@@ -42,7 +42,7 @@ final class PredmetService
       'razred' => $data['razred'] !== '' ? (int)$data['razred'] : null,
       'limit'  => $data['limit'] !== '' ? (int)$data['limit'] : null,
     ]);
-    return (int)$db->lastInsertId();
+    return Db::lastId('PREDMETI_ID_SEQ');
   }
 
   public static function update(int $id, array $data): void

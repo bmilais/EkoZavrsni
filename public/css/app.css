@@ -1,0 +1,120 @@
+/* EkoZavrsni - osnovni stilovi */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
+  background: #f2f4f7;
+  color: #1a1a1a;
+  line-height: 1.5;
+}
+
+#app { padding: 20px; max-width: 1200px; margin: 0 auto; }
+
+h1 { font-size: 1.6rem; margin-bottom: 12px; }
+h2 { font-size: 1.2rem; margin: 18px 0 8px; }
+
+a { color: #2563eb; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* Navigacija */
+.topbar {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+.topbar a { color: #cfe3ff; font-weight: 500; }
+.topbar a:hover { color: #fff; text-decoration: none; }
+.topbar .user { margin-left: auto; color: #9fc3ea; font-size: .9rem; }
+
+/* Tablice */
+table { border-collapse: collapse; width: 100%; background: #fff; }
+th, td { border: 1px solid #d4dbe3; padding: 8px 10px; text-align: left; vertical-align: top; }
+th { background: #eef1f5; font-weight: 600; white-space: nowrap; }
+tr:nth-child(even) td { background: #f8fafc; }
+
+/* Forme */
+form.form { background: #fff; border: 1px solid #d4dbe3; border-radius: 8px; padding: 20px; max-width: 640px; }
+.form .field { margin-bottom: 14px; }
+.form label { display: block; font-weight: 600; margin-bottom: 4px; }
+.form label small { font-weight: normal; color: #6b7280; }
+.form input[type=text],
+.form input[type=email],
+.form input[type=password],
+.form input[type=number],
+.form input[type=url],
+.form select,
+.form textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #b9c2cc;
+  border-radius: 5px;
+  font: inherit;
+}
+.form textarea { resize: vertical; }
+.form .row { display: flex; gap: 14px; }
+.form .row .field { flex: 1; }
+
+/* Gumbi */
+.btn {
+  display: inline-block;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 5px;
+  background: #2563eb;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:hover { background: #1d4ed8; }
+.btn.secondary { background: #6b7280; }
+.btn.secondary:hover { background: #4b5563; }
+.btn.danger { background: #dc2626; }
+.btn.danger:hover { background: #b91c1c; }
+.btn.small { padding: 4px 10px; font-size: .85rem; }
+
+/* Kartica stranice */
+.page { background: #fff; border: 1px solid #d4dbe3; border-radius: 8px; padding: 20px; }
+.page-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 10px; flex-wrap: wrap; }
+
+/* Toast obavijesti */
+#toast-wrap { position: fixed; top: 16px; right: 16px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 10px 16px; border-radius: 6px; color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.2); max-width: 320px; }
+.toast.success { background: #16a34a; }
+.toast.error { background: #dc2626; }
+.toast.info { background: #2563eb; }
+
+/* Modal */
+#modal-wrap { position: fixed; inset: 0; z-index: 999; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.45); }
+#modal-wrap.open { display: flex; }
+.modal { background: #fff; border-radius: 8px; max-width: 520px; width: 94%; max-height: 85vh; overflow: auto; }
+.modal-head { padding: 14px 18px; border-bottom: 1px solid #e5e7eb; font-weight: 600; }
+.modal-body { padding: 18px; }
+.modal-foot { padding: 12px 18px; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Spinner */
+.center-box { text-align: center; padding: 80px 20px; color: #6b7280; }
+.spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid #d4dbe3; border-top-color: #2563eb; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Pomoćno */
+.muted { color: #6b7280; }
+.text-right { text-align: right; }
+.sm { font-size: .85rem; }
+.mb { margin-bottom: 10px; }
+.mt { margin-top: 10px; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: .8rem; font-weight: 600; }
+.badge.green { background: #dcfce7; color: #15803d; }
+.badge.red { background: #fee2e2; color: #b91c1c; }
+.badge.blue { background: #dbeafe; color: #1d4ed8; }
+.badge.gray { background: #e5e7eb; color: #374151; }
+
+/* Filteri */
+.filters { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.filters input, .filters select { padding: 7px 10px; border: 1px solid #b9c2cc; border-radius: 5px; font: inherit; }

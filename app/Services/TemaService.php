@@ -51,7 +51,7 @@ final class TemaService
       'idciklusa'   => $data['idciklusa'] !== '' ? (int)$data['idciklusa'] : null,
       'naziv'       => $data['naziv'],
     ]);
-    return (int)$db->lastInsertId();
+    return Db::lastId('TEME_ID_SEQ');
   }
 
   public static function update(int $id, array $data): void

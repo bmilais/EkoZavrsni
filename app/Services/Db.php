@@ -33,4 +33,15 @@ final class Db
       return false;
     }
   }
+
+  /**
+   * Vraća ID zadnje umetnutog retka. OCI driver nema PDO::lastInsertId(),
+   * pa se ID dohvaća preko sequence u istoj sesiji (CURRVAL).
+   */
+  public static function lastId(string $sequence): int
+  {
+    $sql = 'SELECT ' . $sequence . '.CURRVAL FROM DUAL';
+    $val = self::connect()->query($sql)->fetchColumn();
+    return (int)$val;
+  }
 }

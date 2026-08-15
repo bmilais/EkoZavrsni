@@ -34,7 +34,7 @@ final class RazredService
     $db = Db::connect();
     $stmt = $db->prepare('INSERT INTO RAZREDI (NAZIV) VALUES (:naziv)');
     $stmt->execute(['naziv' => $data['naziv']]);
-    return (int)$db->lastInsertId();
+    return Db::lastId('RAZREDI_ID_SEQ');
   }
 
   public static function update(int $id, array $data): void

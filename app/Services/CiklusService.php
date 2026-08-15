@@ -49,7 +49,7 @@ final class CiklusService
       'max_tema'       => !empty($data['max_tema_po_predmetu']) ? (int)$data['max_tema_po_predmetu'] : null,
       'upute_pdf_url'  => $data['upute_pdf_url'] ?? null,
     ]);
-    return (int)$db->lastInsertId();
+    return Db::lastId('CIKLUSI_ID_SEQ');
   }
 
   public static function update(int $id, array $data): void

@@ -45,7 +45,7 @@ final class UcenikService
       'lozinka'  => $data['lozinka'],
       'smjer'    => (int)$data['smjer'],
     ]);
-    return (int)$db->lastInsertId();
+    return Db::lastId('UCENICI_ID_SEQ');
   }
 
   public static function update(int $id, array $data): void

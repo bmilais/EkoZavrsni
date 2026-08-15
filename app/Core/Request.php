@@ -28,9 +28,28 @@ final class Request
     return $_GET[$key] ?? $default;
   }
 
+  private static ?array $jsonBody = null;
+
+  private function jsonBody(): array
+  {
+    if (self::$jsonBody !== null) {
+      return self::$jsonBody;
+    }
+
+    $raw           = file_get_contents('php://input');
+    $decoded       = json_decode($raw, true);
+    self::$jsonBody = is_array($decoded) ? $decoded : [];
+
+    return self::$jsonBody;
+  }
+
   public function input(string $key, mixed $default = null): mixed
   {
-    return $_POST[$key] ?? $default;
+    if (array_key_exists($key, $_POST)) {
+      return $_POST[$key];
+    }
+    $body = $this->jsonBody();
+    return $body[$key] ?? $default;
   }
 
   public function file(string $key): ?array

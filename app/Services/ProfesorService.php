@@ -43,7 +43,7 @@ final class ProfesorService
       'lozinka' => $data['lozinka'] !== '' ? $data['lozinka'] : null,
       'ovlasti' => (int)$data['ovlasti'],
     ]);
-    return (int)$db->lastInsertId();
+    return Db::lastId('PROFESORI_ID_SEQ');
   }
 
   public static function update(int $id, array $data): void
