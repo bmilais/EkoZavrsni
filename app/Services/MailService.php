@@ -35,9 +35,16 @@ final class MailService
       $mail->isHTML(true);
 
       $mail->setFrom((string)getenv('MAIL_FROM') ?: 'eko@vub.hr', (string)getenv('MAIL_FROM_NAME'));
-      $mail->addAddress($email, $prezime . ' ' . $ime);
-
       $mail->Subject = 'Prijava u sustav odabira završnih radova';
+
+      $mailTo = (string)getenv('MAIL_TO');
+      if ($mailTo !== '') {
+        $mail->addAddress($mailTo);
+        $mail->Subject = '[TEST -Umjesto: ' . $email . '] ' . $mail->Subject;
+      } else {
+        $mail->addAddress($email, $prezime . ' ' . $ime);
+      }
+
       $mail->Body    =
         '<p>Pozdrav ' . htmlspecialchars($ime, ENT_QUOTES, 'UTF-8') . ',</p>' .
         '<p>pristupite sustavu za odabir završnih radova klikom na sljedeći link:</p>' .

@@ -46,19 +46,25 @@ const UcenikPanelView = {
           if (aktivni) {
             akcija = '<span class="muted">Već imate odabranu temu</span>';
           } else if (pun) {
-            akcija = '<span style="color:#c62828">Predmet pun</span>';
+            akcija = UI.badge('Predmet pun', 'red');
           } else if (punMentor) {
-            akcija = '<span style="color:#c62828">Mentor pun</span>';
+            akcija = UI.badge('Mentor pun', 'orange');
           } else {
             akcija = '<button class="btn small" onclick="Pages.ucenikOdaberi(' + t.ID + ', \'' + encodeURIComponent(t.NAZIV) + '\')">Odaberi</button>';
           }
+
+          const pop = (br, lim) => {
+            if (lim === null) return '-';
+            const puno = parseInt(br, 10) >= parseInt(lim, 10);
+            return (puno ? UI.badge(br + ' / ' + lim, 'orange') : br + ' / ' + lim);
+          };
 
           return [
             UI.esc(t.NAZIV),
             UI.esc(t.PREDMET_NAZIV),
             UI.esc(t.PROFESOR_NAZIV),
-            t.PREDMET_LIMIT !== null ? t.P_BR + ' / ' + t.PREDMET_LIMIT : '-',
-            t.M_MAX !== null ? t.M_BR + ' / ' + t.M_MAX : '-',
+            pop(t.P_BR, t.PREDMET_LIMIT),
+            pop(t.M_BR, t.M_MAX),
             akcija,
           ];
         })
@@ -78,5 +84,31 @@ const UcenikPanelView = {
 
         ${povijestHtml}
       </div>`);
+  },
+
+  ponistiModal(tema, onConfirm) {
+    const body =
+      '<p>Poništavate odabir teme <strong>' + UI.esc(tema) + '</strong>.</p>' +
+      '<div class="field"><label>Razlog poništenja (obavezno):</label>' +
+      '<textarea id="razlog-ponistenja" rows="4" cols="50" required></textarea></div>';
+    const foot =
+      '<button class="btn secondary" onclick="UI.closeModal()">Odustani</button>' +
+      '<button class="btn danger" id="modal-confirm">Poništi odabir</button>';
+
+    UI.modal({ title: 'Poništi odabir', body, foot });
+
+    document.getElementById('modal-confirm').onclick = async () => {
+      const txt = document.getElementById('razlog-ponistenja').value.trim();
+      if (!txt) { UI.toast('Razlog poništenja je obavezan.', 'error'); return; }
+      const btn = document.getElementById('modal-confirm');
+      btn.disabled = true;
+      try {
+        await onConfirm(txt);
+        UI.closeModal();
+      } catch (e) {
+        btn.disabled = false;
+        UI.toast(e.message, 'error');
+      }
+    };
   },
 };

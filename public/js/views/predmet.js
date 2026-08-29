@@ -13,8 +13,8 @@ const PredmetView = {
       ],
       load: async () => data,
       rowActions: row =>
-        '<a href="#/admin/predmeti/uredi?id=' + row.ID + '">Uredi</a>' +
-        ' | <button class="btn small danger" onclick="Crud.deleteItem({url:\'predmeti/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati predmet?\', onClick:()=>window.Router.run()})">Obriši</button>',
+        '<a class="btn link" href="#/admin/predmeti/uredi?id=' + row.ID + '">Uredi</a>' +
+        '<button class="btn link danger" onclick="Crud.deleteItem({url:\'predmeti/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati predmet?\', onClick:()=>window.Router.run()})">Obriši</button>',
     });
   },
 

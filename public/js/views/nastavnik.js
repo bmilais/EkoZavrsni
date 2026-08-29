@@ -5,15 +5,22 @@ const NastavnikView = {
     if (teme.length) {
       temeHtml = UI.table(
         ['Tema', 'Predmet', 'Razred', 'Ciklus', 'Odabira', 'Predmet (popunjenost)', 'Mentor (popunjenost)'],
-        teme.map(t => [
-          UI.esc(t.NAZIV),
-          UI.esc(t.PREDMET_NAZIV),
-          UI.esc(t.RAZRED_NAZIV),
-          UI.esc(t.CIKLUS_NAZIV || '-'),
-          t.BR_ODABIRA,
-          t.PREDMET_LIMIT !== null ? t.P_BR + ' / ' + t.PREDMET_LIMIT : '-',
-          t.M_MAX !== null ? t.M_BR + ' / ' + t.M_MAX : '-',
-        ])
+        teme.map(t => {
+          const pop = (br, lim) => {
+            if (lim === null) return '-';
+            const puno = parseInt(br, 10) >= parseInt(lim, 10);
+            return puno ? UI.badge(br + ' / ' + lim, 'orange') : br + ' / ' + lim;
+          };
+          return [
+            UI.esc(t.NAZIV),
+            UI.esc(t.PREDMET_NAZIV),
+            UI.esc(t.RAZRED_NAZIV),
+            UI.esc(t.CIKLUS_NAZIV || '-'),
+            t.BR_ODABIRA,
+            pop(t.P_BR, t.PREDMET_LIMIT),
+            pop(t.M_BR, t.M_MAX),
+          ];
+        })
       );
     }
 
@@ -44,7 +51,7 @@ const NastavnikView = {
           UI.esc(o.RAZRED_NAZIV),
           UI.esc(o.TEMA_NAZIV),
           View.fmtDate(o.DATUM_ODABIRA),
-          o.STATUS === 'aktivan' ? '<span style="color:#2e7d32">Aktivan</span>' : '<span style="color:#c62828">Poništen</span>',
+          o.STATUS === 'aktivan' ? UI.badge('Aktivan', 'green') : UI.badge('Poništen', 'red'),
           View.fmtDate(o.DATUM_PONISTENJA),
           UI.esc(o.OBRAZLOZENJE || '-'),
         ])
@@ -60,8 +67,8 @@ const NastavnikView = {
 
         <h2>Odabiri učenika</h2>
         <div class="filters">
-          Tema: ${temaFilter}
-          &nbsp; Status: ${statusFilter}
+          <span class="muted sm">Tema:</span> ${temaFilter}
+          <span class="muted sm">Status:</span> ${statusFilter}
         </div>
         ${odabiriHtml}
       </div>`);

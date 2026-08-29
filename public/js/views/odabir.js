@@ -8,7 +8,7 @@ const OdabirView = {
     let akcije = '';
     const data = rows.map(o => {
       if (o.STATUS === 'aktivan') {
-        akcije = '<button class="btn small danger" onclick="Pages.odabiriPonisti(' + o.OID + ', \'' +
+        akcije = '<button class="btn link danger" onclick="Pages.odabiriPonisti(' + o.OID + ', \'' +
           encodeURIComponent(o.U_PREZIME + ' ' + o.U_IME) + '\', \'' +
           encodeURIComponent(o.TEMA_NAZIV) + '\')">Poništi</button>';
       } else {
@@ -28,21 +28,19 @@ const OdabirView = {
     });
 
     const filt = (f, l) =>
-      f === filter ? '<strong>' + l + '</strong>' : '<a href="#/admin/odabiri?filter=' + f + '">' + l + '</a>';
+      f === filter ? '<button class="btn small" disabled>' + l + '</button>' : '<a class="btn secondary small" href="#/admin/odabiri?filter=' + f + '">' + l + '</a>';
 
     const toolbar =
-      '<div>' +
-      filt('svi', 'Svi') + ' | ' + filt('aktivni', 'Aktivni') + ' | ' + filt('ponisteni', 'Poništeni') +
-      '</div>' +
-      '<div><a class="btn secondary small" href="api/export/odabiri-excel">Export Excel</a> ' +
+      '<div class="flex">' + filt('svi', 'Svi') + filt('aktivni', 'Aktivni') + filt('ponisteni', 'Poništeni') + '</div>' +
+      '<div class="flex"><a class="btn secondary small" href="api/export/odabiri-excel">Export Excel</a> ' +
       '<a class="btn secondary small" href="api/export/odabiri-pdf">Export PDF</a></div>';
 
     View.set(`
       <div class="page">
+        <p class="back-link"><a href="#/admin">&larr; Povratak na admin panel</a></p>
         <h1>Odabiri tema</h1>
         <div class="page-toolbar">${toolbar}</div>
         ${UI.table(['ID', 'Učenik', 'Email', 'Tema', 'Predmet', 'Profesor', 'Datum', 'Status', 'Akcije'], data)}
-        <p class="mt"><a href="#/admin">&larr; Povratak na admin panel</a></p>
       </div>`);
   },
 

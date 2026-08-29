@@ -72,7 +72,8 @@ const UI = {
     } else {
       html += rows.map(r => '<tr>' + r.map(c => '<td>' + (c === null || c === undefined ? '' : c) + '</td>').join('') + '</tr>').join('');
     }
-    return html + '</table>';
+    html += '</table>';
+    return '<div class="table-wrap">' + html + '</div>';
   },
 
   fieldsHtml(fields, values, options) {

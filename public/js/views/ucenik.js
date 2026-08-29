@@ -14,9 +14,9 @@ const UcenikView = {
       ],
       load: async () => data,
       rowActions: row =>
-        '<a href="#/admin/ucenici/uredi?id=' + row.ID + '">Uredi</a>' +
-        ' | <button class="btn small" onclick="Pages.posaljiLink(' + row.ID + ')">Pošalji link</button>' +
-        ' | <button class="btn small danger" onclick="Crud.deleteItem({url:\'ucenici/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati učenika?\', onClick:()=>window.Router.run()})">Obriši</button>',
+        '<a class="btn link" href="#/admin/ucenici/uredi?id=' + row.ID + '">Uredi</a>' +
+        '<button class="btn link" onclick="Pages.posaljiLink(' + row.ID + ')">Pošalji link</button>' +
+        '<button class="btn link danger" onclick="Crud.deleteItem({url:\'ucenici/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati učenika?\', onClick:()=>window.Router.run()})">Obriši</button>',
     });
   },
 

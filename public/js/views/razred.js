@@ -10,8 +10,8 @@ const RazredView = {
       ],
       load: async () => data,
       rowActions: row =>
-        '<a href="#/admin/razredi/uredi?id=' + row.ID + '">Uredi</a>' +
-        ' | <button class="btn small danger" onclick="Crud.deleteItem({url:\'razredi/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati razred?\', onClick:()=>window.Router.run()})">Obriši</button>',
+        '<a class="btn link" href="#/admin/razredi/uredi?id=' + row.ID + '">Uredi</a>' +
+        '<button class="btn link danger" onclick="Crud.deleteItem({url:\'razredi/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati razred?\', onClick:()=>window.Router.run()})">Obriši</button>',
     });
   },
 

@@ -38,11 +38,11 @@ const Crud = {
     }
 
     let html = '<div class="page">';
+    html += '<p class="back-link"><a href="#/admin">&larr; Povratak na admin panel</a></p>';
     html += '<h1>' + UI.esc(config.title) + '</h1>';
     html += toolbar;
     if (config.filters) html += config.filters;
     html += UI.table(headers, rowsWithActions);
-    html += '<p class="mt"><a href="#/admin">&larr; Povratak na admin panel</a></p>';
     html += '</div>';
 
     app.innerHTML = html;
@@ -58,6 +58,7 @@ const Crud = {
     const fieldsHtml = UI.fieldsHtml(config.fields, values, options);
 
     let html = '<div class="page">';
+    html += '<p class="back-link"><a href="#' + config.backRoute + '">&larr; Povratak</a></p>';
     html += '<h1>' + UI.esc(title) + '</h1>';
     html += '<form class="form" id="crud-form">';
     if (config.id) html += '<input type="hidden" name="id" value="' + config.id + '">';

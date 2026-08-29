@@ -51,7 +51,14 @@ final class UcenikPanelController extends BaseController
     $u = Auth::user();
 
     $odabirId = $this->intParam($req, 'id');
-    $greska   = OdabirService::ponisti((int)$u['id'], $odabirId);
+    $razlog   = trim((string)$req->input('razlog', ''));
+
+    if ($razlog === '') {
+      $this->fail($res, 'Razlog poništenja je obavezan.');
+      return;
+    }
+
+    $greska = OdabirService::ponisti((int)$u['id'], $odabirId, $razlog);
 
     if ($greska !== null) {
       $this->fail($res, $greska);

@@ -111,15 +111,10 @@ const Pages = {
 
   async ucenikPonisti(id, nazivEnc) {
     const naziv = decodeURIComponent(nazivEnc);
-    UI.confirm({
-      title: 'Poništi odabir',
-      body: 'Otkažite odabir teme <strong>' + UI.esc(naziv) + '</strong>?',
-      confirmText: 'Poništi',
-      onConfirm: async () => {
-        await OdabirModel.ponistiMoj(id);
-        UI.toast('Odabir otkazan.', 'success');
-        window.Router.run();
-      },
+    UcenikPanelView.ponistiModal(naziv, async (razlog) => {
+      await OdabirModel.ponistiMoj(id, razlog);
+      UI.toast('Odabir otkazan.', 'success');
+      window.Router.run();
     });
   },
 

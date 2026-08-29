@@ -24,6 +24,12 @@ const API = {
       err.data = data;
       throw err;
     }
+    if (!data && ct.includes('application/json')) {
+      throw new Error('Odgovor servera nije ispravan (prazan JSON).');
+    }
+    if (!data) {
+      throw new Error('Odgovor servera nije JSON (Content-Type: ' + ct + '). Status: ' + r.status);
+    }
     return data;
   },
 

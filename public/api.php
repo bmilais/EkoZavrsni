@@ -10,12 +10,22 @@ use App\Core\Router;
 
 Env::load(__DIR__ . '/../.env');
 
-$router = new Router();
+header('Content-Type: application/json; charset=utf-8');
 
-$routes = require __DIR__ . '/../routes/api.php';
-$routes($router);
+try {
+  $router = new Router();
 
-$req = new Request();
-$res = new Response();
+  $routes = require __DIR__ . '/../routes/api.php';
+  $routes($router);
 
-$router->dispatch($req, $res);
+  $req = new Request();
+  $res = new Response();
+
+  $router->dispatch($req, $res);
+} catch (\Throwable $e) {
+  http_response_code(500);
+  echo json_encode([
+    'success' => false,
+    'error'   => 'Greška na serveru: ' . $e->getMessage(),
+  ], JSON_UNESCAPED_UNICODE);
+}

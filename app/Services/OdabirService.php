@@ -153,6 +153,34 @@ final class OdabirService
       }
     }
 
+    // Ako učenik već ima red za ovu temu (npr. poništeni), reaktiviraj ga
+    // umjesto novog INSERT-a — ODABIRI_UK ograničava na (IDTEME, IDUCENIKA).
+    $postoji = $db->prepare(
+      "SELECT ID, STATUS FROM ODABIRI
+        WHERE IDTEME = :tema AND IDUCENIKA = :ucenik AND DELETED = 0"
+    );
+    $postoji->execute(['tema' => $temaId, 'ucenik' => $ucenikId]);
+    $red = $postoji->fetch();
+
+    if ($red && $red['STATUS'] === 'aktivan') {
+      return 'Već ste odabrali tu temu.';
+    }
+
+    if ($red) {
+      $upd = $db->prepare(
+        "UPDATE ODABIRI
+            SET STATUS = 'aktivan',
+                OBRAZLOZENJE = NULL,
+                PONISTIO_ID = NULL,
+                DATUM_PONISTENJA = NULL,
+                CREATED = SYSTIMESTAMP,
+                UPDATED = SYSTIMESTAMP
+          WHERE ID = :id"
+      );
+      $upd->execute(['id' => $red['ID']]);
+      return null;
+    }
+
     $stmt = $db->prepare(
       "INSERT INTO ODABIRI (IDTEME, IDUCENIKA, DELETED, STATUS)
        VALUES (:tema, :ucenik, 0, 'aktivan')"
@@ -163,23 +191,27 @@ final class OdabirService
   }
 
   /**
-   * Učenik otkazuje svoj aktivni odabir.
+   * Učenik otkazuje svoj aktivni odabir. Razlog je obavezan.
    */
-  public static function ponisti(int $ucenikId, int $odabirId): ?string
+  public static function ponisti(int $ucenikId, int $odabirId, string $razlog): ?string
   {
     if ($odabirId <= 0) {
       return 'Nepoznat odabir.';
+    }
+    $razlog = trim($razlog);
+    if ($razlog === '') {
+      return 'Razlog poništenja je obavezan.';
     }
 
     $stmt = Db::connect()->prepare(
       "UPDATE ODABIRI
           SET STATUS = 'ponisten',
-              OBRAZLOZENJE = 'Otkazao učenik',
+              OBRAZLOZENJE = :razlog,
               PONISTIO_ID = NULL,
               DATUM_PONISTENJA = SYSTIMESTAMP
         WHERE ID = :id AND IDUCENIKA = :ucenik AND STATUS = 'aktivan' AND DELETED = 0"
     );
-    $stmt->execute(['id' => $odabirId, 'ucenik' => $ucenikId]);
+    $stmt->execute(['razlog' => $razlog, 'id' => $odabirId, 'ucenik' => $ucenikId]);
 
     if ($stmt->rowCount() === 0) {
       return 'Aktivni odabir nije pronađen.';

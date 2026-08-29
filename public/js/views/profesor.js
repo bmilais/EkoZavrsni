@@ -13,8 +13,8 @@ const ProfesorView = {
       ],
       load: async () => data,
       rowActions: row =>
-        '<a href="#/admin/profesori/uredi?id=' + row.ID + '">Uredi</a>' +
-        ' | <button class="btn small danger" onclick="Crud.deleteItem({url:\'profesori/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati profesora?\', onClick:()=>window.Router.run()})">Obriši</button>',
+        '<a class="btn link" href="#/admin/profesori/uredi?id=' + row.ID + '">Uredi</a>' +
+        '<button class="btn link danger" onclick="Crud.deleteItem({url:\'profesori/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati profesora?\', onClick:()=>window.Router.run()})">Obriši</button>',
     });
   },
 

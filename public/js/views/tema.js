@@ -15,8 +15,8 @@ const TemaView = {
       ],
       load: async () => data,
       rowActions: row =>
-        '<a href="#/admin/teme/uredi?id=' + row.ID + '">Uredi</a>' +
-        ' | <button class="btn small danger" onclick="Crud.deleteItem({url:\'teme/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati temu?\', onClick:()=>window.Router.run()})">Obriši</button>',
+        '<a class="btn link" href="#/admin/teme/uredi?id=' + row.ID + '">Uredi</a>' +
+        '<button class="btn link danger" onclick="Crud.deleteItem({url:\'teme/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati temu?\', onClick:()=>window.Router.run()})">Obriši</button>',
     });
   },
 

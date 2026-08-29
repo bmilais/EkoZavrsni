@@ -8,6 +8,15 @@ const View = {
   layout() {
     const u = window.App.user;
     if (!u) return '';
+
+    const isActive = (r) => {
+      const h = location.hash;
+      // podstranice (npr. #/admin/ucenici/novi) zadržavaju aktivno na roditelju
+      if (h === '#' + r) return ' class="active"';
+      if (r !== '/admin' && h.indexOf('#' + r + '/') === 0) return ' class="active"';
+      return '';
+    };
+
     let links = '';
     if (u.uloga === 'admin') {
       const items = [
@@ -21,19 +30,24 @@ const View = {
         ['/admin/odabiri', 'Odabiri'],
         ['/admin/stanje', 'Stanje'],
       ];
-      links = items.map(([r, l]) =>
-        '<a href="#' + r + '"' + (location.hash === '#' + r ? ' style="text-decoration:underline"' : '') + '>' + l + '</a>'
-      ).join(' | ');
-    } else if (u.uloga === 'nastavnik') {
-      links = '<a href="#/nastavnik">Panel</a>';
-    } else if (u.uloga === 'ucenik') {
-      links = '<a href="#/ucenik">Moje teme</a>';
+      links = '<nav>' + items.map(([r, l]) =>
+        '<a href="#' + r + '"' + isActive(r) + '>' + l + '</a>'
+      ).join('') + '</nav>';
+    } else {
+      let item;
+      if (u.uloga === 'nastavnik') item = ['/nastavnik', 'Panel'];
+      else item = ['/ucenik', 'Moje teme'];
+      links = '<nav><a href="#' + item[0] + '"' + isActive(item[0]) + '>' + item[1] + '</a></nav>';
     }
+
+    const inicijali = (u.ime ? u.ime[0] : '') + (u.prezime ? u.prezime[0] : '');
+
     return '<div class="topbar">' +
-      '<a href="#/"><strong>EkoZavrsni</strong></a>' +
-      (links ? ' | ' + links : '') +
-      '<span class="user">' + UI.esc(u.ime + ' ' + u.prezime) +
-      ' <a href="#" onclick="window.App.logout(event)" style="margin-left:10px">Odjava</a></span>' +
+      '<a href="#/" class="brand">🍃 EkoZavrsni<small>Sustav odabira završnih radova</small></a>' +
+      links +
+      '<span class="user"><span class="avatar">' + UI.esc(inicijali.toUpperCase()) + '</span>' +
+      UI.esc(u.ime + ' ' + u.prezime) +
+      ' <a href="#" onclick="window.App.logout(event)" style="margin-left:8px">Odjava</a></span>' +
       '</div>';
   },
 

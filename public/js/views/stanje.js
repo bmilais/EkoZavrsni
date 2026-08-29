@@ -19,6 +19,7 @@ const StanjeView = {
 
     View.set(`
       <div class="page">
+        <p class="back-link"><a href="#/admin">&larr; Povratak na admin panel</a></p>
         <h1>Stanje zauzetosti tema i mentora</h1>
 
         <h2>Mentori (profesori)</h2>
@@ -29,8 +30,6 @@ const StanjeView = {
 
         <h2>Ciklusi</h2>
         ${UI.table(['Ciklus', 'Status', 'Tema', 'Odabira'], cikRows)}
-
-        <p class="mt"><a href="#/admin">&larr; Povratak na admin panel</a></p>
       </div>`);
   },
 };

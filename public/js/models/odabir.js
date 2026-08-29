@@ -5,5 +5,5 @@ const OdabirModel = {
   moji() { return API.get('ucenik/moji'); },
   dostupne() { return API.get('ucenik/teme'); },
   odaberi(temaId) { return API.post('ucenik/odaberi', { tema_id: temaId }); },
-  ponistiMoj(id) { return API.post('ucenik/ponisti', { id }); },
+  ponistiMoj(id, razlog) { return API.post('ucenik/ponisti', { id, razlog }); },
 };

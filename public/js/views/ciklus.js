@@ -21,11 +21,11 @@ const CiklusView = {
 
   akcije(row) {
     const labels = { priprema: 'Priprema', otvoreno: 'Otvoreno', zakljucano: 'Zaključano', arhivirano: 'Arhivirano' };
-    let h = '<a href="#/admin/ciklusi/uredi?id=' + row.ID + '">Uredi</a>';
+    let h = '<a class="btn link" href="#/admin/ciklusi/uredi?id=' + row.ID + '">Uredi</a>';
     (row.MOGUCI_STATUSI || []).forEach(s => {
-      h += ' | <button class="btn small secondary" onclick="Pages.ciklusStatus(' + row.ID + ', \'' + s + '\')">' + labels[s] + '</button>';
+      h += '<button class="btn link" onclick="Pages.ciklusStatus(' + row.ID + ', \'' + s + '\')">' + labels[s] + '</button>';
     });
-    h += ' | <button class="btn small danger" onclick="Crud.deleteItem({url:\'ciklusi/obrisi\', id:' + row.ID + ', title:\'Brisanje ciklusa\', confirmText:\'Obrisati ciklus?\', onClick:()=>window.Router.run()})">Obriši</button>';
+    h += '<button class="btn link danger" onclick="Crud.deleteItem({url:\'ciklusi/obrisi\', id:' + row.ID + ', title:\'Brisanje ciklusa\', confirmText:\'Obrisati ciklus?\', onClick:()=>window.Router.run()})">Obriši</button>';
     return h;
   },
 

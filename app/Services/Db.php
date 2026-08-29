@@ -16,12 +16,21 @@ final class Db
     $tns = "(DESCRIPTION=(ADDRESS=(PROTOCOL=TCP)(HOST={$cfg['host']})(PORT={$cfg['port']}))(CONNECT_DATA=(SID={$cfg['sid']})))";
     $dsn = "oci:dbname={$tns};charset={$cfg['charset']}";
 
-    self::$conn = new \PDO($dsn, $cfg['username'], $cfg['password'], [
-      \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
-      \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-    ]);
-
-    return self::$conn;
+    $lastError = null;
+    for ($attempt = 1; $attempt <= 3; $attempt++) {
+      try {
+        self::$conn = new \PDO($dsn, $cfg['username'], $cfg['password'], [
+          \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
+          \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+        ]);
+        return self::$conn;
+      } catch (\PDOException $e) {
+        $lastError = $e;
+        self::$conn = null;
+        if ($attempt < 3) usleep(500_000);
+      }
+    }
+    throw $lastError;
   }
 
   public static function ping(): bool

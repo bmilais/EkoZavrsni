@@ -3,6 +3,7 @@ const UvozView = {
   render(title, opis, backRoute) {
     View.set(`
       <div class="page">
+        <p class="back-link"><a href="${backRoute}">&larr; Povratak</a></p>
         <h1>${title}</h1>
         <p class="muted">Očekivani redoslijed stupaca (prvi red = zaglavlje, preskače se):</p>
         ${opis}
