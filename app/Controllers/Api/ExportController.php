@@ -86,6 +86,152 @@ final class ExportController extends BaseController
     exit;
   }
 
+  public function uceniciExcel(Request $req, Response $res): void
+  {
+    $this->requireRole($res, ['admin']);
+    $data = $this->dohvatiUcenike();
+
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Učenici');
+
+    $headers = ['ID', 'Ime', 'Prezime', 'Email', 'Smjer', 'Razred'];
+    foreach (range('A', 'F') as $i => $col) {
+      $sheet->setCellValueExplicit($col . '1', $headers[$i], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    }
+    $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+
+    $row = 2;
+    foreach ($data as $d) {
+      $sheet->setCellValueExplicit('A' . $row, (string)$d['ID'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('B' . $row, $d['IME'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('C' . $row, $d['PREZIME'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('D' . $row, $d['EMAIL'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('E' . $row, $d['SMJER_LABEL'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('F' . $row, $d['RAZRED_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $row++;
+    }
+
+    foreach (range('A', 'F') as $col) {
+      $sheet->getColumnDimension($col)->setAutoSize(true);
+    }
+
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    ob_clean();
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="ucenici-' . date('Y-m-d') . '.xlsx"');
+    $writer->save('php://output');
+    exit;
+  }
+
+  public function uceniciPdf(Request $req, Response $res): void
+  {
+    $this->requireRole($res, ['admin']);
+    $data = $this->dohvatiUcenike();
+
+    $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+      body { font-family: DejaVu Sans, sans-serif; font-size: 10px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #333; padding: 4px; }
+      th { background: #eee; }
+    </style></head><body>';
+    $html .= '<h1 style="font-size:18px">Popis učenika</h1>';
+    $html .= '<p>Datum izvoza: ' . date('d.m.Y H:i') . '</p>';
+    $html .= '<table>';
+    $html .= '<tr><th>ID</th><th>Ime</th><th>Prezime</th><th>Email</th><th>Smjer</th><th>Razred</th></tr>';
+    foreach ($data as $d) {
+      $html .= '<tr>';
+      $html .= '<td>' . htmlspecialchars((string)$d['ID'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['IME'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['PREZIME'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['EMAIL'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['SMJER_LABEL'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['RAZRED_NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '</tr>';
+    }
+    $html .= '</table></body></html>';
+
+    $dompdf = new \Dompdf\Dompdf();
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('A4', 'landscape');
+    $dompdf->render();
+    $dompdf->stream('ucenici-' . date('Y-m-d') . '.pdf', ['Attachment' => true]);
+    exit;
+  }
+
+  public function temeExcel(Request $req, Response $res): void
+  {
+    $this->requireRole($res, ['admin']);
+    $data = \App\Services\TemaService::list();
+
+    $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+    $sheet = $spreadsheet->getActiveSheet();
+    $sheet->setTitle('Teme');
+
+    $headers = ['ID', 'Naziv', 'Predmet', 'Profesor', 'Razred', 'Ciklus'];
+    foreach (range('A', 'F') as $i => $col) {
+      $sheet->setCellValueExplicit($col . '1', $headers[$i], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+    }
+    $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+
+    $row = 2;
+    foreach ($data as $d) {
+      $sheet->setCellValueExplicit('A' . $row, (string)$d['ID'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('B' . $row, $d['NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('C' . $row, $d['PREDMET_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('D' . $row, $d['PROFESOR_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('E' . $row, $d['RAZRED_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('F' . $row, $d['CIKLUS_NAZIV'] ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $row++;
+    }
+
+    foreach (range('A', 'F') as $col) {
+      $sheet->getColumnDimension($col)->setAutoSize(true);
+    }
+
+    $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+    ob_clean();
+    header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet; charset=UTF-8');
+    header('Content-Disposition: attachment; filename="teme-' . date('Y-m-d') . '.xlsx"');
+    $writer->save('php://output');
+    exit;
+  }
+
+  public function temePdf(Request $req, Response $res): void
+  {
+    $this->requireRole($res, ['admin']);
+    $data = \App\Services\TemaService::list();
+
+    $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+      body { font-family: DejaVu Sans, sans-serif; font-size: 10px; }
+      table { border-collapse: collapse; width: 100%; }
+      th, td { border: 1px solid #333; padding: 4px; }
+      th { background: #eee; }
+    </style></head><body>';
+    $html .= '<h1 style="font-size:18px">Popis tema</h1>';
+    $html .= '<p>Datum izvoza: ' . date('d.m.Y H:i') . '</p>';
+    $html .= '<table>';
+    $html .= '<tr><th>ID</th><th>Naziv</th><th>Predmet</th><th>Profesor</th><th>Razred</th><th>Ciklus</th></tr>';
+    foreach ($data as $d) {
+      $html .= '<tr>';
+      $html .= '<td>' . htmlspecialchars((string)$d['ID'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['PREDMET_NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['PROFESOR_NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['RAZRED_NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['CIKLUS_NAZIV'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '</tr>';
+    }
+    $html .= '</table></body></html>';
+
+    $dompdf = new \Dompdf\Dompdf();
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('A4', 'landscape');
+    $dompdf->render();
+    $dompdf->stream('teme-' . date('Y-m-d') . '.pdf', ['Attachment' => true]);
+    exit;
+  }
+
   private function dohvatiPodatke(): array
   {
     $db = Db::connect();
@@ -106,5 +252,15 @@ final class ExportController extends BaseController
     );
     $stmt->execute();
     return $stmt->fetchAll();
+  }
+
+  private function dohvatiUcenike(): array
+  {
+    $ucenici = \App\Services\UcenikService::list();
+    foreach ($ucenici as &$u) {
+      $u['SMJER_LABEL'] = \App\Services\UcenikService::smjerLabel((int)$u['SMJER']);
+    }
+    unset($u);
+    return $ucenici;
   }
 }

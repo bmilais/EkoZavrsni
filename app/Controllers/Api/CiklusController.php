@@ -21,7 +21,7 @@ final class CiklusController extends BaseController
         $this->fail($res, 'Ciklus nije pronađen.', 404);
         return;
       }
-      $ciklus['STATUS_LABEL'] = CiklusService::statusLabel($ciklus['STATUS']);
+      $ciklus['STATUS_LABEL'] = CiklusService::statusLabel($ciklus['status']);
       $this->ok($res, ['data' => $ciklus]);
       return;
     }

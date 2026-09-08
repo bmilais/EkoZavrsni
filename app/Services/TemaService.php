@@ -34,7 +34,7 @@ final class TemaService
     );
     $stmt->execute(['id' => $id]);
     $row = $stmt->fetch();
-    return $row ?: null;
+    return $row ? array_change_key_case($row, CASE_LOWER) : null;
   }
 
   public static function create(array $data): int
@@ -51,6 +51,7 @@ final class TemaService
       'idciklusa'   => $data['idciklusa'] !== '' ? (int)$data['idciklusa'] : null,
       'naziv'       => $data['naziv'],
     ]);
+    Db::commit();
     return Db::lastId('TEME_ID_SEQ');
   }
 
@@ -73,11 +74,13 @@ final class TemaService
       'naziv'       => $data['naziv'],
       'id'          => $id,
     ]);
+    Db::commit();
   }
 
   public static function delete(int $id): void
   {
     $stmt = Db::connect()->prepare('UPDATE TEME SET DELETED = 1 WHERE ID = :id');
     $stmt->execute(['id' => $id]);
+    Db::commit();
   }
 }

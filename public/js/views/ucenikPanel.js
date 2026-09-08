@@ -1,8 +1,9 @@
 /* View učenikovog panela - moje teme, odabir i otkazivanje */
 const UcenikPanelView = {
   render(moji, dostupne, ciklus) {
-    const aktivni = moji.find(o => o.STATUS === 'aktivan');
-    const povijest = moji.filter(o => o.STATUS !== 'aktivan');
+    const cikId = ciklus ? Number(ciklus.ID) : null;
+    const aktivni = moji.find(o => o.STATUS === 'aktivan' && (cikId === null || Number(o.IDCIKLUSA) === cikId));
+    const povijest = moji.filter(o => o.OID !== (aktivni ? aktivni.OID : null));
 
     let aktivniHtml = '<p class="muted">Trenutno nemate odabranu temu.</p>';
     if (aktivni) {
@@ -18,12 +19,13 @@ const UcenikPanelView = {
     let povijestHtml = '';
     if (povijest.length) {
       povijestHtml = '<h3>Povijest odabira</h3>' + UI.table(
-        ['Tema', 'Predmet', 'Mentor', 'Odabrano', 'Poništeno', 'Razlog'],
+        ['Tema', 'Predmet', 'Mentor', 'Odabrano', 'Status', 'Poništeno', 'Razlog'],
         povijest.map(o => [
           UI.esc(o.TEMA_NAZIV),
           UI.esc(o.PREDMET_NAZIV),
           UI.esc(o.PROFESOR_NAZIV),
           View.fmtDate(o.DATUM),
+          o.STATUS === 'aktivan' ? UI.badge('Prošli ciklus', 'gray') : UI.badge('Poništen', 'red'),
           View.fmtDate(o.DATUM_PONISTENJA),
           UI.esc(o.OBRAZLOZENJE || '-'),
         ])

@@ -10,17 +10,23 @@ final class NastavnikService
    */
   public static function mojeTeme(int $profesorId): array
   {
+    $ciklus   = OdabirService::openCiklus();
+    $ciklusId = $ciklus ? (int)$ciklus['ID'] : null;
+
     $stmt = Db::connect()->prepare(
       "SELECT t.ID, t.NAZIV,
               p.ID AS PREDMET_ID, p.NAZIV AS PREDMET_NAZIV, p.\"LIMIT\" AS PREDMET_LIMIT,
               r.NAZIV AS RAZRED_NAZIV,
               c.NAZIV AS CIKLUS_NAZIV,
-              (SELECT COUNT(*) FROM ODABIRI o
-                WHERE o.IDTEME = t.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0) AS BR_ODABIRA,
+              (SELECT COUNT(*) FROM ODABIRI o JOIN TEME tx ON tx.ID = o.IDTEME
+                WHERE o.IDTEME = t.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0
+                  AND (:c4 IS NULL OR tx.IDCIKLUSA = :c4)) AS BR_ODABIRA,
               (SELECT COUNT(*) FROM ODABIRI o JOIN TEME t2 ON t2.ID = o.IDTEME
-                WHERE t2.IDPREDMETA = p.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0) AS P_BR,
+                WHERE t2.IDPREDMETA = p.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0
+                  AND (:c1 IS NULL OR t2.IDCIKLUSA = :c1)) AS P_BR,
               (SELECT COUNT(*) FROM ODABIRI o JOIN TEME t3 ON t3.ID = o.IDTEME
-                WHERE t3.IDPROFESORA = :pid2 AND o.STATUS = 'aktivan' AND o.DELETED = 0) AS M_BR,
+                WHERE t3.IDPROFESORA = :pid2 AND o.STATUS = 'aktivan' AND o.DELETED = 0
+                  AND (:c2 IS NULL OR t3.IDCIKLUSA = :c2)) AS M_BR,
               :mentor_max AS M_MAX
          FROM TEME t
          JOIN PREDMETI p   ON p.ID  = t.IDPREDMETA AND p.DELETED = 0
@@ -32,7 +38,10 @@ final class NastavnikService
     $stmt->execute([
       'pid1'       => $profesorId,
       'pid2'       => $profesorId,
-      'mentor_max' => OdabirService::openCiklus()['MAX_UCENIKA_PO_MENTORU'] ?? null,
+      'mentor_max' => $ciklus['MAX_UCENIKA_PO_MENTORU'] ?? null,
+      'c1'         => $ciklusId,
+      'c2'         => $ciklusId,
+      'c4'         => $ciklusId,
     ]);
     return $stmt->fetchAll();
   }
@@ -42,6 +51,8 @@ final class NastavnikService
    */
   public static function odabiri(int $profesorId, ?int $temaId, string $filter): array
   {
+    $ciklus   = OdabirService::openCiklus();
+    $ciklusId = $ciklus ? (int)$ciklus['ID'] : null;
     $where = "t.IDPROFESORA = :pid AND o.DELETED = 0 AND t.DELETED = 0";
     $params = ['pid' => $profesorId];
 
@@ -51,7 +62,8 @@ final class NastavnikService
     }
 
     if ($filter === 'aktivni') {
-      $where .= " AND o.STATUS = 'aktivan'";
+      $where .= " AND o.STATUS = 'aktivan' AND (:cik IS NULL OR t.IDCIKLUSA = :cik)";
+      $params['cik'] = $ciklusId;
     } elseif ($filter === 'ponisteni') {
       $where .= " AND o.STATUS = 'ponisten'";
     }

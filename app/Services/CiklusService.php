@@ -32,7 +32,7 @@ final class CiklusService
     );
     $stmt->execute(['id' => $id]);
     $row = $stmt->fetch();
-    return $row ?: null;
+    return $row ? array_change_key_case($row, CASE_LOWER) : null;
   }
 
   public static function create(array $data): int
@@ -49,6 +49,7 @@ final class CiklusService
       'max_tema'       => !empty($data['max_tema_po_predmetu']) ? (int)$data['max_tema_po_predmetu'] : null,
       'upute_pdf_url'  => $data['upute_pdf_url'] ?? null,
     ]);
+    Db::commit();
     return Db::lastId('CIKLUSI_ID_SEQ');
   }
 
@@ -71,12 +72,16 @@ final class CiklusService
       'upute_pdf_url'  => $data['upute_pdf_url'] ?? null,
       'id'             => $id,
     ]);
+    Db::commit();
   }
 
   public static function delete(int $id): void
   {
-    $stmt = Db::connect()->prepare('UPDATE CIKLUSI SET DELETED = 1 WHERE ID = :id');
+    $stmt = Db::connect()->prepare(
+      "UPDATE CIKLUSI SET DELETED = 1, STATUS = 'arhivirano' WHERE ID = :id"
+    );
     $stmt->execute(['id' => $id]);
+    Db::commit();
   }
 
   public static function mozePromijenitiStatus(string $trenutni, string $novi): bool
@@ -97,8 +102,8 @@ final class CiklusService
       return 'Ciklus nije pronađen.';
     }
 
-    if (!self::mozePromijenitiStatus($ciklus['STATUS'], $noviStatus)) {
-      return "Status ne može ići iz '{$ciklus['STATUS']}' u '{$noviStatus}'.";
+    if (!self::mozePromijenitiStatus($ciklus['status'], $noviStatus)) {
+      return "Status ne može ići iz '{$ciklus['status']}' u '{$noviStatus}'.";
     }
 
     $setovi = ['STATUS = :status'];
@@ -114,6 +119,7 @@ final class CiklusService
 
     try {
       Db::connect()->prepare($sql)->execute($params);
+      Db::commit();
       return '';
     } catch (\Throwable $e) {
       if (str_contains($e->getMessage(), 'CIKLUSI_JEDAN_OTVOREN_UK')) {

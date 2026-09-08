@@ -22,7 +22,7 @@ final class UcenikController extends BaseController
         $this->fail($res, 'Učenik nije pronađen.', 404);
         return;
       }
-      $ucenik['SMJER_LABEL'] = UcenikService::smjerLabel((int)$ucenik['SMJER']);
+      $ucenik['SMJER_LABEL'] = UcenikService::smjerLabel((int)$ucenik['smjer']);
       $this->ok($res, ['data' => $ucenik]);
       return;
     }
@@ -66,7 +66,7 @@ final class UcenikController extends BaseController
 
     $postojeci = $id > 0 ? UcenikService::get($id) : null;
     if ($data['lozinka'] === '' && $postojeci) {
-      $data['lozinka'] = $postojeci['LOZINKA'];
+      $data['lozinka'] = $postojeci['lozinka'];
     }
 
     if ($id > 0) {
@@ -102,10 +102,10 @@ final class UcenikController extends BaseController
     }
 
     $greska = MailService::posaljiLinkUceniku(
-      $ucenik['EMAIL'],
-      $ucenik['IME'],
-      $ucenik['PREZIME'],
-      $ucenik['HASH']
+      $ucenik['email'],
+      $ucenik['ime'],
+      $ucenik['prezime'],
+      $ucenik['hash']
     );
 
     if ($greska !== null) {

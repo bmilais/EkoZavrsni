@@ -21,7 +21,7 @@ final class PredmetController extends BaseController
         $this->fail($res, 'Predmet nije pronađen.', 404);
         return;
       }
-      $predmet['SMJER_LABEL'] = PredmetService::smjerLabel((int)$predmet['SMJER']);
+      $predmet['SMJER_LABEL'] = PredmetService::smjerLabel((int)$predmet['smjer']);
       $this->ok($res, ['data' => $predmet]);
       return;
     }

@@ -70,6 +70,10 @@ return function (Router $router): void {
   $export = new ExportController();
   $router->get('/api/export/odabiri-excel', [$export, 'odabiriExcel']);
   $router->get('/api/export/odabiri-pdf',   [$export, 'odabiriPdf']);
+  $router->get('/api/export/ucenici-excel', [$export, 'uceniciExcel']);
+  $router->get('/api/export/ucenici-pdf',   [$export, 'uceniciPdf']);
+  $router->get('/api/export/teme-excel',    [$export, 'temeExcel']);
+  $router->get('/api/export/teme-pdf',      [$export, 'temePdf']);
 
   $panel = new UcenikPanelController();
   $router->get('/api/ucenik/teme',    [$panel, 'dostupne']);

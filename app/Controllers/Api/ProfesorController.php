@@ -54,7 +54,7 @@ final class ProfesorController extends BaseController
 
     $postojeci = $id > 0 ? ProfesorService::get($id) : null;
     if ($data['lozinka'] === '' && $postojeci) {
-      $data['lozinka'] = $postojeci['LOZINKA'];
+      $data['lozinka'] = $postojeci['lozinka'];
     }
 
     if ($id > 0) {

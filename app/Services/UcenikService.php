@@ -27,7 +27,7 @@ final class UcenikService
     );
     $stmt->execute(['id' => $id]);
     $row = $stmt->fetch();
-    return $row ?: null;
+    return $row ? array_change_key_case($row, CASE_LOWER) : null;
   }
 
   public static function create(array $data): int
@@ -45,6 +45,7 @@ final class UcenikService
       'lozinka'  => $data['lozinka'],
       'smjer'    => (int)$data['smjer'],
     ]);
+    Db::commit();
     return Db::lastId('UCENICI_ID_SEQ');
   }
 
@@ -69,12 +70,14 @@ final class UcenikService
       'smjer'    => (int)$data['smjer'],
       'id'       => $id,
     ]);
+    Db::commit();
   }
 
   public static function delete(int $id): void
   {
     $stmt = Db::connect()->prepare('UPDATE UCENICI SET DELETED = 1 WHERE ID = :id');
     $stmt->execute(['id' => $id]);
+    Db::commit();
   }
 
   public static function smjerLabel(int $smjer): string

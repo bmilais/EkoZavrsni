@@ -4,7 +4,9 @@ const TemaView = {
     Crud.list({
       title: 'Teme',
       newBtn: { label: '+ Nova tema', route: '/admin/teme/novi' },
-      extraToolbar: '<a class="btn secondary small" href="#/admin/teme/uvoz">Uvoz iz Excela</a>',
+      extraToolbar: '<a class="btn secondary small" href="#/admin/teme/uvoz">Uvoz iz Excela</a> ' +
+        '<a class="btn secondary small" href="api/export/teme-excel">Export Excel</a> ' +
+        '<a class="btn secondary small" href="api/export/teme-pdf">Export PDF</a>',
       columns: [
         { key: 'ID', label: 'ID' },
         { label: 'Naziv', render: r => UI.esc(r.NAZIV) },

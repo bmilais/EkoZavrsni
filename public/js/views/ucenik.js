@@ -4,7 +4,9 @@ const UcenikView = {
     Crud.list({
       title: 'Učenici',
       newBtn: { label: '+ Novi učenik', route: '/admin/ucenici/novi' },
-      extraToolbar: '<a class="btn secondary small" href="#/admin/ucenici/uvoz">Uvoz iz Excela</a>',
+      extraToolbar: '<a class="btn secondary small" href="#/admin/ucenici/uvoz">Uvoz iz Excela</a> ' +
+        '<a class="btn secondary small" href="api/export/ucenici-excel">Export Excel</a> ' +
+        '<a class="btn secondary small" href="api/export/ucenici-pdf">Export PDF</a>',
       columns: [
         { key: 'ID', label: 'ID' },
         { label: 'Ime i prezime', render: r => UI.esc(r.PREZIME + ' ' + r.IME) },

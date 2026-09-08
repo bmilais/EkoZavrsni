@@ -10,3 +10,5 @@ Minimalni PHP MVC skeleton (PSR-4) + Oracle (PDO_OCI).
 ## Preduvjeti
 - PHP pdo_oci ekstenzija (zahtijeva Oracle Instant Client - Basic + php_pdo_oci.dll u ext/ mapi)
 - Oracle baza (radi se protiv postojece sheme, init.sql/seed.sql se pokrecu odvojeno)
+
+C:\xampp\mailpit\mailpit.exe --smtp 0.0.0.0:1025 --listen 0.0.0.0:8025

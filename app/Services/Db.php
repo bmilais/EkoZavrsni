@@ -22,6 +22,7 @@ final class Db
         self::$conn = new \PDO($dsn, $cfg['username'], $cfg['password'], [
           \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
           \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+          \PDO::ATTR_AUTOCOMMIT         => true,
         ]);
         return self::$conn;
       } catch (\PDOException $e) {
@@ -31,6 +32,18 @@ final class Db
       }
     }
     throw $lastError;
+  }
+
+  /**
+   * Eksplicitni COMMIT nakon INSERT/UPDATE/DELETE.
+   * PDO_OCI ne poštuje pouzdano PDO::ATTR_AUTOCOMMIT niti interno
+   * praćenje transakcije (inTransaction()/PDO::commit()), pa se ovdje
+   * šalje gola SQL naredba COMMIT koju Oracle uvijek izvrši bez obzira
+   * na to kako driver misli da stoji stanje transakcije.
+   */
+  public static function commit(): void
+  {
+    self::connect()->exec('COMMIT');
   }
 
   public static function ping(): bool

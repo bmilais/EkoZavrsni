@@ -26,7 +26,7 @@ final class RazredService
     );
     $stmt->execute(['id' => $id]);
     $row = $stmt->fetch();
-    return $row ?: null;
+    return $row ? array_change_key_case($row, CASE_LOWER) : null;
   }
 
   public static function create(array $data): int
@@ -34,6 +34,7 @@ final class RazredService
     $db = Db::connect();
     $stmt = $db->prepare('INSERT INTO RAZREDI (NAZIV) VALUES (:naziv)');
     $stmt->execute(['naziv' => $data['naziv']]);
+    Db::commit();
     return Db::lastId('RAZREDI_ID_SEQ');
   }
 
@@ -41,11 +42,13 @@ final class RazredService
   {
     $stmt = Db::connect()->prepare('UPDATE RAZREDI SET NAZIV = :naziv WHERE ID = :id AND DELETED = 0');
     $stmt->execute(['naziv' => $data['naziv'], 'id' => $id]);
+    Db::commit();
   }
 
   public static function delete(int $id): void
   {
     $stmt = Db::connect()->prepare('UPDATE RAZREDI SET DELETED = 1 WHERE ID = :id');
     $stmt->execute(['id' => $id]);
+    Db::commit();
   }
 }

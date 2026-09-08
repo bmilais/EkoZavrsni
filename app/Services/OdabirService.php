@@ -37,12 +37,15 @@ final class OdabirService
       "SELECT t.ID, t.NAZIV,
               p.ID AS PREDMET_ID, p.NAZIV AS PREDMET_NAZIV, p.\"LIMIT\" AS PREDMET_LIMIT,
               pr.ID AS PROFESOR_ID, pr.PREZIME || ' ' || pr.IME AS PROFESOR_NAZIV,
-              (SELECT COUNT(*) FROM ODABIRI o
-                WHERE o.IDTEME = t.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0) AS BR_ODABIRA,
+              (SELECT COUNT(*) FROM ODABIRI o JOIN TEME tx ON tx.ID = o.IDTEME
+                WHERE o.IDTEME = t.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0
+                  AND tx.IDCIKLUSA = :ciklus) AS BR_ODABIRA,
               (SELECT COUNT(*) FROM ODABIRI o JOIN TEME t2 ON t2.ID = o.IDTEME
-                WHERE t2.IDPREDMETA = p.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0) AS P_BR,
+                WHERE t2.IDPREDMETA = p.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0
+                  AND t2.IDCIKLUSA = :ciklus) AS P_BR,
               (SELECT COUNT(*) FROM ODABIRI o JOIN TEME t3 ON t3.ID = o.IDTEME
-                WHERE t3.IDPROFESORA = pr.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0) AS M_BR,
+                WHERE t3.IDPROFESORA = pr.ID AND o.STATUS = 'aktivan' AND o.DELETED = 0
+                  AND t3.IDCIKLUSA = :ciklus) AS M_BR,
               :mentor_max AS M_MAX
          FROM TEME t
          JOIN PREDMETI p   ON p.ID  = t.IDPREDMETA AND p.DELETED = 0
@@ -52,8 +55,10 @@ final class OdabirService
           AND (t.IDCIKLUSA IS NULL OR t.IDCIKLUSA = :ciklus)
           AND NOT EXISTS (
                 SELECT 1 FROM ODABIRI o2
+                  JOIN TEME t4 ON t4.ID = o2.IDTEME AND t4.DELETED = 0
                  WHERE o2.IDTEME = t.ID AND o2.STATUS = 'aktivan' AND o2.DELETED = 0
-                   AND o2.IDUCENIKA = :ucenik)
+                   AND o2.IDUCENIKA = :ucenik
+                   AND t4.IDCIKLUSA = :ciklus)
         ORDER BY p.NAZIV, t.NAZIV"
     );
     $stmt->execute([
@@ -72,6 +77,7 @@ final class OdabirService
               TO_CHAR(o.CREATED, 'YYYY-MM-DD HH24:MI') AS DATUM,
               TO_CHAR(o.DATUM_PONISTENJA, 'YYYY-MM-DD HH24:MI') AS DATUM_PONISTENJA,
               t.NAZIV AS TEMA_NAZIV,
+              t.IDCIKLUSA AS IDCIKLUSA,
               p.NAZIV AS PREDMET_NAZIV,
               pr.PREZIME || ' ' || pr.IME AS PROFESOR_NAZIV
          FROM ODABIRI o
@@ -120,10 +126,12 @@ final class OdabirService
     }
 
     $stmt = $db->prepare(
-      "SELECT COUNT(*) AS C FROM ODABIRI
-        WHERE IDUCENIKA = :ucenik AND STATUS = 'aktivan' AND DELETED = 0"
+      "SELECT COUNT(*) AS C FROM ODABIRI o
+         JOIN TEME t5 ON t5.ID = o.IDTEME AND t5.DELETED = 0
+        WHERE o.IDUCENIKA = :ucenik AND o.STATUS = 'aktivan' AND o.DELETED = 0
+          AND t5.IDCIKLUSA = :ciklus"
     );
-    $stmt->execute(['ucenik' => $ucenikId]);
+    $stmt->execute(['ucenik' => $ucenikId, 'ciklus' => (int)$ciklus['ID']]);
     if ((int)$stmt->fetchColumn() > 0) {
       return 'Već imate aktivno odabranu temu.';
     }
@@ -134,9 +142,10 @@ final class OdabirService
     if ($limit !== null && $limit !== false && (int)$limit > 0) {
       $stmt = $db->prepare(
         "SELECT COUNT(*) FROM ODABIRI o JOIN TEME t2 ON t2.ID = o.IDTEME
-          WHERE t2.IDPREDMETA = :pid AND o.STATUS = 'aktivan' AND o.DELETED = 0"
+          WHERE t2.IDPREDMETA = :pid AND o.STATUS = 'aktivan' AND o.DELETED = 0
+            AND t2.IDCIKLUSA = :ciklus"
       );
-      $stmt->execute(['pid' => $tema['IDPREDMETA']]);
+      $stmt->execute(['pid' => $tema['IDPREDMETA'], 'ciklus' => (int)$ciklus['ID']]);
       if ((int)$stmt->fetchColumn() >= (int)$limit) {
         return 'Predmet je popunjen (limit dosegnut).';
       }
@@ -145,9 +154,10 @@ final class OdabirService
     if ($ciklus['MAX_UCENIKA_PO_MENTORU'] !== null) {
       $stmt = $db->prepare(
         "SELECT COUNT(*) FROM ODABIRI o JOIN TEME t3 ON t3.ID = o.IDTEME
-          WHERE t3.IDPROFESORA = :prof AND o.STATUS = 'aktivan' AND o.DELETED = 0"
+          WHERE t3.IDPROFESORA = :prof AND o.STATUS = 'aktivan' AND o.DELETED = 0
+            AND t3.IDCIKLUSA = :ciklus"
       );
-      $stmt->execute(['prof' => $tema['IDPROFESORA']]);
+      $stmt->execute(['prof' => $tema['IDPROFESORA'], 'ciklus' => (int)$ciklus['ID']]);
       if ((int)$stmt->fetchColumn() >= (int)$ciklus['MAX_UCENIKA_PO_MENTORU']) {
         return 'Mentor je popunjen (maksimalan broj učenika).';
       }
@@ -178,6 +188,7 @@ final class OdabirService
           WHERE ID = :id"
       );
       $upd->execute(['id' => $red['ID']]);
+      Db::commit();
       return null;
     }
 
@@ -186,6 +197,7 @@ final class OdabirService
        VALUES (:tema, :ucenik, 0, 'aktivan')"
     );
     $stmt->execute(['tema' => $temaId, 'ucenik' => $ucenikId]);
+    Db::commit();
 
     return null;
   }
@@ -212,6 +224,7 @@ final class OdabirService
         WHERE ID = :id AND IDUCENIKA = :ucenik AND STATUS = 'aktivan' AND DELETED = 0"
     );
     $stmt->execute(['razlog' => $razlog, 'id' => $odabirId, 'ucenik' => $ucenikId]);
+    Db::commit();
 
     if ($stmt->rowCount() === 0) {
       return 'Aktivni odabir nije pronađen.';

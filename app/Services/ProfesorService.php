@@ -26,7 +26,7 @@ final class ProfesorService
     );
     $stmt->execute(['id' => $id]);
     $row = $stmt->fetch();
-    return $row ?: null;
+    return $row ? array_change_key_case($row, CASE_LOWER) : null;
   }
 
   public static function create(array $data): int
@@ -43,6 +43,7 @@ final class ProfesorService
       'lozinka' => $data['lozinka'] !== '' ? $data['lozinka'] : null,
       'ovlasti' => (int)$data['ovlasti'],
     ]);
+    Db::commit();
     return Db::lastId('PROFESORI_ID_SEQ');
   }
 
@@ -65,12 +66,14 @@ final class ProfesorService
       'ovlasti' => (int)$data['ovlasti'],
       'id'      => $id,
     ]);
+    Db::commit();
   }
 
   public static function delete(int $id): void
   {
     $stmt = Db::connect()->prepare('UPDATE PROFESORI SET DELETED = 1 WHERE ID = :id');
     $stmt->execute(['id' => $id]);
+    Db::commit();
   }
 
   public static function ulogaLabel(int $ovlasti): string

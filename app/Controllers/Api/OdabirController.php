@@ -7,6 +7,7 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Services\Auth;
 use App\Services\Db;
+use App\Services\OdabirService;
 
 final class OdabirController extends BaseController
 {
@@ -17,8 +18,10 @@ final class OdabirController extends BaseController
 
     $filter = (string)($req->query('filter', 'aktivni') ?? 'aktivni');
     $where  = 'o.DELETED = 0';
+    $ciklus = OdabirService::openCiklus();
+    $cikId  = $ciklus ? (int)$ciklus['ID'] : null;
     if ($filter === 'aktivni') {
-      $where .= " AND o.STATUS = 'aktivan'";
+      $where .= " AND o.STATUS = 'aktivan' AND (:cik IS NULL OR t.IDCIKLUSA = :cik)";
     } elseif ($filter === 'ponisteni') {
       $where .= " AND o.STATUS = 'ponisten'";
     }
@@ -38,7 +41,7 @@ final class OdabirController extends BaseController
         WHERE {$where}
         ORDER BY o.CREATED DESC"
     );
-    $stmt->execute();
+    $stmt->execute($cikId !== null ? ['cik' => $cikId] : ['cik' => null]);
     $this->ok($res, ['data' => $stmt->fetchAll()]);
   }
 
@@ -69,6 +72,7 @@ final class OdabirController extends BaseController
       'ponistio'     => $user['id'],
       'id'           => $id,
     ]);
+    Db::commit();
 
     $this->ok($res);
   }

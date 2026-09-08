@@ -26,7 +26,7 @@ final class PredmetService
     );
     $stmt->execute(['id' => $id]);
     $row = $stmt->fetch();
-    return $row ?: null;
+    return $row ? array_change_key_case($row, CASE_LOWER) : null;
   }
 
   public static function create(array $data): int
@@ -42,6 +42,7 @@ final class PredmetService
       'razred' => $data['razred'] !== '' ? (int)$data['razred'] : null,
       'limit'  => $data['limit'] !== '' ? (int)$data['limit'] : null,
     ]);
+    Db::commit();
     return Db::lastId('PREDMETI_ID_SEQ');
   }
 
@@ -62,12 +63,14 @@ final class PredmetService
       'limit'  => $data['limit'] !== '' ? (int)$data['limit'] : null,
       'id'     => $id,
     ]);
+    Db::commit();
   }
 
   public static function delete(int $id): void
   {
     $stmt = Db::connect()->prepare('UPDATE PREDMETI SET DELETED = 1 WHERE ID = :id');
     $stmt->execute(['id' => $id]);
+    Db::commit();
   }
 
   public static function smjerLabel(int $smjer): string
