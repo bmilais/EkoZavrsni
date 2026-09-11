@@ -12,7 +12,8 @@ final class ExportController extends BaseController
   public function odabiriExcel(Request $req, Response $res): void
   {
     $this->requireRole($res, ['admin']);
-    $data = $this->dohvatiPodatke();
+    $ciklusId = (int)$req->query('ciklus_id', 0);
+    $data = $this->dohvatiPodatke($ciklusId > 0 ? $ciklusId : null);
 
     $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
@@ -53,7 +54,8 @@ final class ExportController extends BaseController
   public function odabiriPdf(Request $req, Response $res): void
   {
     $this->requireRole($res, ['admin']);
-    $data = $this->dohvatiPodatke();
+    $ciklusId = (int)$req->query('ciklus_id', 0);
+    $data = $this->dohvatiPodatke($ciklusId > 0 ? $ciklusId : null);
 
     $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
       body { font-family: DejaVu Sans, sans-serif; font-size: 10px; }
@@ -89,30 +91,33 @@ final class ExportController extends BaseController
   public function uceniciExcel(Request $req, Response $res): void
   {
     $this->requireRole($res, ['admin']);
-    $data = $this->dohvatiUcenike();
+    $ciklusId = (int)$req->query('ciklus_id', 0);
+    $data = $this->dohvatiUcenike($ciklusId > 0 ? $ciklusId : null);
 
     $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('Učenici');
 
-    $headers = ['ID', 'Ime', 'Prezime', 'Email', 'Smjer', 'Razred'];
-    foreach (range('A', 'F') as $i => $col) {
+    // Redoslijed stupaca mora odgovarati onome što očekuje uvoz (UvozController::uveziUcenike):
+    // Ime, Prezime, Email, Razred, Smjer — bez ID stupca, kako bi izvoz iz jednog ciklusa
+    // mogao izravno poslužiti kao uvoz u drugi ciklus.
+    $headers = ['Ime', 'Prezime', 'Email', 'Razred', 'Smjer'];
+    foreach (range('A', 'E') as $i => $col) {
       $sheet->setCellValueExplicit($col . '1', $headers[$i], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
     }
-    $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+    $sheet->getStyle('A1:E1')->getFont()->setBold(true);
 
     $row = 2;
     foreach ($data as $d) {
-      $sheet->setCellValueExplicit('A' . $row, (string)$d['ID'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-      $sheet->setCellValueExplicit('B' . $row, $d['IME'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-      $sheet->setCellValueExplicit('C' . $row, $d['PREZIME'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-      $sheet->setCellValueExplicit('D' . $row, $d['EMAIL'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('A' . $row, $d['IME'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('B' . $row, $d['PREZIME'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('C' . $row, $d['EMAIL'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('D' . $row, $d['RAZRED_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
       $sheet->setCellValueExplicit('E' . $row, $d['SMJER_LABEL'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-      $sheet->setCellValueExplicit('F' . $row, $d['RAZRED_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
       $row++;
     }
 
-    foreach (range('A', 'F') as $col) {
+    foreach (range('A', 'E') as $col) {
       $sheet->getColumnDimension($col)->setAutoSize(true);
     }
 
@@ -127,7 +132,8 @@ final class ExportController extends BaseController
   public function uceniciPdf(Request $req, Response $res): void
   {
     $this->requireRole($res, ['admin']);
-    $data = $this->dohvatiUcenike();
+    $ciklusId = (int)$req->query('ciklus_id', 0);
+    $data = $this->dohvatiUcenike($ciklusId > 0 ? $ciklusId : null);
 
     $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
       body { font-family: DejaVu Sans, sans-serif; font-size: 10px; }
@@ -138,15 +144,14 @@ final class ExportController extends BaseController
     $html .= '<h1 style="font-size:18px">Popis učenika</h1>';
     $html .= '<p>Datum izvoza: ' . date('d.m.Y H:i') . '</p>';
     $html .= '<table>';
-    $html .= '<tr><th>ID</th><th>Ime</th><th>Prezime</th><th>Email</th><th>Smjer</th><th>Razred</th></tr>';
+    $html .= '<tr><th>Ime</th><th>Prezime</th><th>Email</th><th>Razred</th><th>Smjer</th></tr>';
     foreach ($data as $d) {
       $html .= '<tr>';
-      $html .= '<td>' . htmlspecialchars((string)$d['ID'], ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '<td>' . htmlspecialchars($d['IME'], ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '<td>' . htmlspecialchars($d['PREZIME'], ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '<td>' . htmlspecialchars($d['EMAIL'], ENT_QUOTES, 'UTF-8') . '</td>';
-      $html .= '<td>' . htmlspecialchars($d['SMJER_LABEL'], ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '<td>' . htmlspecialchars($d['RAZRED_NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
+      $html .= '<td>' . htmlspecialchars($d['SMJER_LABEL'], ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '</tr>';
     }
     $html .= '</table></body></html>';
@@ -162,30 +167,33 @@ final class ExportController extends BaseController
   public function temeExcel(Request $req, Response $res): void
   {
     $this->requireRole($res, ['admin']);
-    $data = \App\Services\TemaService::list();
+    $ciklusId = (int)$req->query('ciklus_id', 0);
+    $data = \App\Services\TemaService::list($ciklusId > 0 ? $ciklusId : null);
 
     $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
     $sheet = $spreadsheet->getActiveSheet();
     $sheet->setTitle('Teme');
 
-    $headers = ['ID', 'Naziv', 'Predmet', 'Profesor', 'Razred', 'Ciklus'];
-    foreach (range('A', 'F') as $i => $col) {
+    // Redoslijed stupaca mora odgovarati onome što očekuje uvoz (UvozController::uvezi):
+    // Naziv, Predmet, Profesor, Razred — bez ID stupca i bez stupca Ciklus (tema uvijek
+    // ide u ciklus čija je stranica uvoza/izvoza trenutno otvorena, ne po vrijednosti iz retka),
+    // kako bi izvoz iz jednog ciklusa mogao izravno poslužiti kao uvoz u drugi ciklus.
+    $headers = ['Naziv', 'Predmet', 'Profesor', 'Razred'];
+    foreach (range('A', 'D') as $i => $col) {
       $sheet->setCellValueExplicit($col . '1', $headers[$i], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
     }
-    $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+    $sheet->getStyle('A1:D1')->getFont()->setBold(true);
 
     $row = 2;
     foreach ($data as $d) {
-      $sheet->setCellValueExplicit('A' . $row, (string)$d['ID'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-      $sheet->setCellValueExplicit('B' . $row, $d['NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-      $sheet->setCellValueExplicit('C' . $row, $d['PREDMET_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-      $sheet->setCellValueExplicit('D' . $row, $d['PROFESOR_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-      $sheet->setCellValueExplicit('E' . $row, $d['RAZRED_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-      $sheet->setCellValueExplicit('F' . $row, $d['CIKLUS_NAZIV'] ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('A' . $row, $d['NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('B' . $row, $d['PREDMET_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('C' . $row, $d['PROFESOR_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+      $sheet->setCellValueExplicit('D' . $row, $d['RAZRED_NAZIV'], \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
       $row++;
     }
 
-    foreach (range('A', 'F') as $col) {
+    foreach (range('A', 'D') as $col) {
       $sheet->getColumnDimension($col)->setAutoSize(true);
     }
 
@@ -200,7 +208,8 @@ final class ExportController extends BaseController
   public function temePdf(Request $req, Response $res): void
   {
     $this->requireRole($res, ['admin']);
-    $data = \App\Services\TemaService::list();
+    $ciklusId = (int)$req->query('ciklus_id', 0);
+    $data = \App\Services\TemaService::list($ciklusId > 0 ? $ciklusId : null);
 
     $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
       body { font-family: DejaVu Sans, sans-serif; font-size: 10px; }
@@ -211,15 +220,13 @@ final class ExportController extends BaseController
     $html .= '<h1 style="font-size:18px">Popis tema</h1>';
     $html .= '<p>Datum izvoza: ' . date('d.m.Y H:i') . '</p>';
     $html .= '<table>';
-    $html .= '<tr><th>ID</th><th>Naziv</th><th>Predmet</th><th>Profesor</th><th>Razred</th><th>Ciklus</th></tr>';
+    $html .= '<tr><th>Naziv</th><th>Predmet</th><th>Profesor</th><th>Razred</th></tr>';
     foreach ($data as $d) {
       $html .= '<tr>';
-      $html .= '<td>' . htmlspecialchars((string)$d['ID'], ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '<td>' . htmlspecialchars($d['NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '<td>' . htmlspecialchars($d['PREDMET_NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '<td>' . htmlspecialchars($d['PROFESOR_NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '<td>' . htmlspecialchars($d['RAZRED_NAZIV'], ENT_QUOTES, 'UTF-8') . '</td>';
-      $html .= '<td>' . htmlspecialchars($d['CIKLUS_NAZIV'] ?? '', ENT_QUOTES, 'UTF-8') . '</td>';
       $html .= '</tr>';
     }
     $html .= '</table></body></html>';
@@ -232,9 +239,15 @@ final class ExportController extends BaseController
     exit;
   }
 
-  private function dohvatiPodatke(): array
+  private function dohvatiPodatke(?int $ciklusId = null): array
   {
     $db = Db::connect();
+    $where = 'o.DELETED = 0';
+    $params = [];
+    if ($ciklusId !== null) {
+      $where .= ' AND t.IDCIKLUSA = :ciklus';
+      $params['ciklus'] = $ciklusId;
+    }
     $stmt = $db->prepare(
       "SELECT o.ID AS OID, o.STATUS, o.OBRAZLOZENJE, TO_CHAR(o.CREATED, 'YYYY-MM-DD HH24:MI') AS DATUM_ODABIRA,
               u.PREZIME || ' ' || u.IME AS U_IME,
@@ -247,16 +260,16 @@ final class ExportController extends BaseController
          JOIN TEME t     ON t.ID = o.IDTEME AND t.DELETED = 0
          JOIN PREDMETI p ON p.ID = t.IDPREDMETA AND p.DELETED = 0
          JOIN PROFESORI pr ON pr.ID = t.IDPROFESORA AND pr.DELETED = 0
-        WHERE o.DELETED = 0
+        WHERE {$where}
         ORDER BY o.CREATED DESC"
     );
-    $stmt->execute();
+    $stmt->execute($params);
     return $stmt->fetchAll();
   }
 
-  private function dohvatiUcenike(): array
+  private function dohvatiUcenike(?int $ciklusId = null): array
   {
-    $ucenici = \App\Services\UcenikService::list();
+    $ucenici = \App\Services\UcenikService::list($ciklusId);
     foreach ($ucenici as &$u) {
       $u['SMJER_LABEL'] = \App\Services\UcenikService::smjerLabel((int)$u['SMJER']);
     }

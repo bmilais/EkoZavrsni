@@ -56,7 +56,11 @@ final class CiklusController extends BaseController
     }
 
     if ($id > 0) {
-      CiklusService::update($id, $data);
+      $error = CiklusService::update($id, $data);
+      if ($error !== '') {
+        $this->fail($res, $error, 400);
+        return;
+      }
     } else {
       $id = CiklusService::create($data);
     }

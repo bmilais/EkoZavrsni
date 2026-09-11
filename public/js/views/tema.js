@@ -1,45 +1,51 @@
-/* View tema - lista i forma */
+/* View tema - lista i forma, uvijek u kontekstu ciklusa */
 const TemaView = {
-  list(data) {
+  list(data, ciklus) {
+    const cid = ciklus.ID;
     Crud.list({
-      title: 'Teme',
-      newBtn: { label: '+ Nova tema', route: '/admin/teme/novi' },
-      extraToolbar: '<a class="btn secondary small" href="#/admin/teme/uvoz">Uvoz iz Excela</a> ' +
-        '<a class="btn secondary small" href="api/export/teme-excel">Export Excel</a> ' +
-        '<a class="btn secondary small" href="api/export/teme-pdf">Export PDF</a>',
+      title: 'Teme — ' + UI.esc(ciklus.NAZIV),
+      subtitle: 'Ciklus: ' + UI.esc(ciklus.SKOLSKA_GODINA || ''),
+      backRoute: '/admin/ciklusi',
+      backLabel: 'Povratak na popis ciklusa',
+      newBtn: { label: '+ Nova tema', route: '/admin/teme/novi?ciklus_id=' + cid },
+      extraToolbar: '<a class="btn secondary small" href="#/admin/ucenici?ciklus_id=' + cid + '">→ Učenici ovog ciklusa</a> ' +
+        '<a class="btn secondary small" href="#/admin/teme/uvoz?ciklus_id=' + cid + '">Uvoz iz Excela</a> ' +
+        '<a class="btn secondary small" href="api/export/teme-excel?ciklus_id=' + cid + '">Export Excel</a> ' +
+        '<a class="btn secondary small" href="api/export/teme-pdf?ciklus_id=' + cid + '">Export PDF</a>',
       columns: [
         { key: 'ID', label: 'ID' },
         { label: 'Naziv', render: r => UI.esc(r.NAZIV) },
         { label: 'Predmet', render: r => UI.esc(r.PREDMET_NAZIV) },
         { label: 'Profesor', render: r => UI.esc(r.PROFESOR_NAZIV) },
         { label: 'Razred', render: r => UI.esc(r.RAZRED_NAZIV) },
-        { label: 'Ciklus', render: r => UI.esc(r.CIKLUS_NAZIV || '-') },
       ],
       load: async () => data,
       rowActions: row =>
-        '<a class="btn link" href="#/admin/teme/uredi?id=' + row.ID + '">Uredi</a>' +
+        '<a class="btn link" href="#/admin/teme/uredi?id=' + row.ID + '&ciklus_id=' + cid + '">Uredi</a>' +
         '<button class="btn link danger" onclick="Crud.deleteItem({url:\'teme/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati temu?\', onClick:()=>window.Router.run()})">Obriši</button>',
     });
   },
 
-  form(id, values, opt) {
+  form(id, values, opt, ciklusId) {
     const options = {
       idpredmeta: opt.predmeti.map(p => ({ value: p.ID, label: p.NAZIV })),
       idprofesora: opt.profesori.map(p => ({ value: p.ID, label: p.PREZIME + ' ' + p.IME })),
       idrazred: opt.razredi.map(r => ({ value: r.ID, label: r.NAZIV })),
-      idciklusa: opt.ciklusi.map(c => ({ value: c.ID, label: c.NAZIV })),
     };
+
+    if (!values.idciklusa) values.idciklusa = ciklusId;
 
     Crud.form({
       title: id > 0 ? 'Uredi temu' : 'Nova tema',
-      id, backRoute: '/admin/teme',
+      id, backRoute: '/admin/teme?ciklus_id=' + ciklusId,
       saveUrl: 'teme/spremi', values, options,
+      redirectAfter: '#/admin/teme?ciklus_id=' + ciklusId,
       fields: [
         { name: 'naziv', label: 'Naziv teme', type: 'text', required: true, size: 80 },
         { name: 'idpredmeta', label: 'Predmet', type: 'select', required: true },
         { name: 'idprofesora', label: 'Profesor (mentor)', type: 'select', required: true },
         { name: 'idrazred', label: 'Razred', type: 'select', required: true },
-        { name: 'idciklusa', label: 'Ciklus', type: 'select', placeholder: '-- Nije vezano uz ciklus --' },
+        { name: 'idciklusa', label: 'Ciklus', type: 'select', required: true, placeholder: false, options: [{ value: ciklusId, label: opt.ciklusNaziv || ('Ciklus #' + ciklusId) }] },
       ],
     });
   },

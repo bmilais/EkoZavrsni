@@ -1,6 +1,7 @@
 /* View odabira (admin) - lista i modal za poništavanje */
 const OdabirView = {
-  list(rows, filter) {
+  list(rows, filter, ciklus) {
+    const cid = ciklus.ID;
     const status = (o) => o.STATUS === 'aktivan'
       ? UI.badge('Aktivan', 'green')
       : UI.badge('Poništen', 'red');
@@ -28,17 +29,20 @@ const OdabirView = {
     });
 
     const filt = (f, l) =>
-      f === filter ? '<button class="btn small" disabled>' + l + '</button>' : '<a class="btn secondary small" href="#/admin/odabiri?filter=' + f + '">' + l + '</a>';
+      f === filter ? '<button class="btn small" disabled>' + l + '</button>' : '<a class="btn secondary small" href="#/admin/odabiri?ciklus_id=' + cid + '&filter=' + f + '">' + l + '</a>';
 
     const toolbar =
       '<div class="flex">' + filt('svi', 'Svi') + filt('aktivni', 'Aktivni') + filt('ponisteni', 'Poništeni') + '</div>' +
-      '<div class="flex"><a class="btn secondary small" href="api/export/odabiri-excel">Export Excel</a> ' +
-      '<a class="btn secondary small" href="api/export/odabiri-pdf">Export PDF</a></div>';
+      '<div class="flex">' +
+      '<a class="btn secondary small" href="#/admin/ucenici?ciklus_id=' + cid + '">→ Učenici ovog ciklusa</a> ' +
+      '<a class="btn secondary small" href="#/admin/teme?ciklus_id=' + cid + '">→ Teme ovog ciklusa</a> ' +
+      '<a class="btn secondary small" href="api/export/odabiri-excel?ciklus_id=' + cid + '">Export Excel</a> ' +
+      '<a class="btn secondary small" href="api/export/odabiri-pdf?ciklus_id=' + cid + '">Export PDF</a></div>';
 
     View.set(`
       <div class="page">
-        <p class="back-link"><a href="#/admin">&larr; Povratak na admin panel</a></p>
-        <h1>Odabiri tema</h1>
+        <p class="back-link"><a href="#/admin/ciklusi">&larr; Povratak na popis ciklusa</a></p>
+        <h1>Odabiri tema — ${UI.esc(ciklus.NAZIV)}</h1>
         <div class="page-toolbar">${toolbar}</div>
         ${UI.table(['ID', 'Učenik', 'Email', 'Tema', 'Predmet', 'Profesor', 'Datum', 'Status', 'Akcije'], data)}
       </div>`);

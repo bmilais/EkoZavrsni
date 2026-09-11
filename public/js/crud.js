@@ -38,8 +38,9 @@ const Crud = {
     }
 
     let html = '<div class="page">';
-    html += '<p class="back-link"><a href="#/admin">&larr; Povratak na admin panel</a></p>';
+    html += '<p class="back-link"><a href="#' + (config.backRoute || '/admin') + '">&larr; ' + (config.backLabel || 'Povratak na admin panel') + '</a></p>';
     html += '<h1>' + UI.esc(config.title) + '</h1>';
+    if (config.subtitle) html += '<p class="muted">' + config.subtitle + '</p>';
     html += toolbar;
     if (config.filters) html += config.filters;
     html += UI.table(headers, rowsWithActions);
@@ -62,6 +63,11 @@ const Crud = {
     html += '<h1>' + UI.esc(title) + '</h1>';
     html += '<form class="form" id="crud-form">';
     if (config.id) html += '<input type="hidden" name="id" value="' + config.id + '">';
+    if (config.hidden) {
+      Object.keys(config.hidden).forEach(k => {
+        html += '<input type="hidden" name="' + k + '" value="' + UI.esc(config.hidden[k]) + '">';
+      });
+    }
     html += fieldsHtml;
     html += '<div class="field">';
     html += '<button type="submit" class="btn" id="crud-save">Spremi</button> ';

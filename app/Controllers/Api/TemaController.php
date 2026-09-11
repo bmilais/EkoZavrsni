@@ -28,7 +28,8 @@ final class TemaController extends BaseController
       return;
     }
 
-    $this->ok($res, ['data' => TemaService::list()]);
+    $ciklusId = (int)$req->query('ciklus_id', 0);
+    $this->ok($res, ['data' => TemaService::list($ciklusId > 0 ? $ciklusId : null)]);
   }
 
   /**
@@ -72,6 +73,10 @@ final class TemaController extends BaseController
     }
     if ((int)$data['idrazred'] <= 0) {
       $this->fail($res, 'Razred je obavezan.');
+      return;
+    }
+    if ((int)$data['idciklusa'] <= 0) {
+      $this->fail($res, 'Ciklus je obavezan.');
       return;
     }
 

@@ -1,6 +1,12 @@
 /* View uvoza iz Excela - zajednički za teme i učenike */
 const UvozView = {
-  render(title, opis, backRoute) {
+  render(title, opis, backRoute, hidden) {
+    let hiddenHtml = '';
+    if (hidden) {
+      Object.keys(hidden).forEach(k => {
+        hiddenHtml += '<input type="hidden" name="' + k + '" value="' + UI.esc(hidden[k]) + '">';
+      });
+    }
     View.set(`
       <div class="page">
         <p class="back-link"><a href="${backRoute}">&larr; Povratak</a></p>
@@ -9,6 +15,7 @@ const UvozView = {
         ${opis}
         <br>
         <form class="form" id="uvoz-form">
+          ${hiddenHtml}
           <div class="field"><label>Excel datoteka</label><input type="file" name="excel" accept=".xlsx,.xls" required></div>
           <button type="submit" class="btn">Uvezi</button>
           <a class="btn secondary" href="${backRoute}">Odustani</a>

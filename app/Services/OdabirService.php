@@ -25,11 +25,16 @@ final class OdabirService
    * Dostupne teme za učenika: njegov razred + otvoreni ciklus,
    * bez tema koje je učenik već aktivno odabrao. Uz brojače popunjenosti
    * predmeta i mentora da frontend može onemogućiti odabir.
+   *
+   * $ucenikCiklusId je ciklus u koji je učenik uvezen (UCENICI.IDCIKLUS).
+   * Učenik smije birati teme samo dok je BAŠ taj ciklus otvoren - ako je
+   * trenutno otvoren neki drugi (noviji) ciklus, učenik iz starog ciklusa
+   * ne smije vidjeti/birati njegove teme.
    */
-  public static function dostupneTeme(int $razredId, int $ucenikId): array
+  public static function dostupneTeme(int $razredId, int $ucenikId, int $ucenikCiklusId): array
   {
     $ciklus = self::openCiklus();
-    if (!$ciklus) {
+    if (!$ciklus || (int)$ciklus['ID'] !== $ucenikCiklusId) {
       return [];
     }
 
@@ -52,7 +57,7 @@ final class OdabirService
          JOIN PROFESORI pr ON pr.ID = t.IDPROFESORA AND pr.DELETED = 0
         WHERE t.DELETED = 0
           AND t.IDRAZRED = :razred
-          AND (t.IDCIKLUSA IS NULL OR t.IDCIKLUSA = :ciklus)
+          AND t.IDCIKLUSA = :ciklus
           AND NOT EXISTS (
                 SELECT 1 FROM ODABIRI o2
                   JOIN TEME t4 ON t4.ID = o2.IDTEME AND t4.DELETED = 0
@@ -94,7 +99,7 @@ final class OdabirService
   /**
    * Učenik bira temu. Vraća null ako je uspjeh, inače poruku greške.
    */
-  public static function odaberi(int $ucenikId, int $razredId, int $temaId): ?string
+  public static function odaberi(int $ucenikId, int $razredId, int $ucenikCiklusId, int $temaId): ?string
   {
     if ($temaId <= 0) {
       return 'Nepoznata tema.';
@@ -121,7 +126,10 @@ final class OdabirService
     if (!$ciklus) {
       return 'Trenutno nema otvorenog ciklusa za odabir.';
     }
-    if ($tema['IDCIKLUSA'] !== null && (int)$tema['IDCIKLUSA'] !== (int)$ciklus['ID']) {
+    if ((int)$ciklus['ID'] !== $ucenikCiklusId) {
+      return 'Vaš ciklus trenutno nije otvoren za odabir.';
+    }
+    if ((int)$tema['IDCIKLUSA'] !== (int)$ciklus['ID']) {
       return 'Tema nije u aktivnom ciklusu.';
     }
 

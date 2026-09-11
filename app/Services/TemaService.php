@@ -5,23 +5,32 @@ namespace App\Services;
 
 final class TemaService
 {
-  public static function list(): array
+  /**
+   * @param int|null $ciklusId Ako je zadan, vraća samo teme tog ciklusa.
+   *                           Ako je null, vraća teme svih ciklusa (npr. za export/pregled).
+   */
+  public static function list(?int $ciklusId = null): array
   {
-    $stmt = Db::connect()->prepare(
-      'SELECT t.ID, t.NAZIV,
-              p.NAZIV AS PREDMET_NAZIV,
-              pr.PREZIME || \' \' || pr.IME AS PROFESOR_NAZIV,
-              r.NAZIV AS RAZRED_NAZIV,
-              c.NAZIV AS CIKLUS_NAZIV
-         FROM TEME t
-         JOIN PREDMETI p  ON p.ID  = t.IDPREDMETA
-         JOIN PROFESORI pr ON pr.ID = t.IDPROFESORA
-         JOIN RAZREDI r    ON r.ID  = t.IDRAZRED
-         LEFT JOIN CIKLUSI c ON c.ID = t.IDCIKLUSA
-        WHERE t.DELETED = 0
-        ORDER BY t.NAZIV'
-    );
-    $stmt->execute();
+    $sql = 'SELECT t.ID, t.NAZIV,
+                   p.NAZIV AS PREDMET_NAZIV,
+                   pr.PREZIME || \' \' || pr.IME AS PROFESOR_NAZIV,
+                   r.NAZIV AS RAZRED_NAZIV,
+                   c.NAZIV AS CIKLUS_NAZIV
+              FROM TEME t
+              JOIN PREDMETI p  ON p.ID  = t.IDPREDMETA
+              JOIN PROFESORI pr ON pr.ID = t.IDPROFESORA
+              JOIN RAZREDI r    ON r.ID  = t.IDRAZRED
+              LEFT JOIN CIKLUSI c ON c.ID = t.IDCIKLUSA
+             WHERE t.DELETED = 0';
+    $params = [];
+    if ($ciklusId !== null) {
+      $sql .= ' AND t.IDCIKLUSA = :ciklus';
+      $params['ciklus'] = $ciklusId;
+    }
+    $sql .= ' ORDER BY t.NAZIV';
+
+    $stmt = Db::connect()->prepare($sql);
+    $stmt->execute($params);
     return $stmt->fetchAll();
   }
 
@@ -48,7 +57,7 @@ final class TemaService
       'idpredmeta'  => (int)$data['idpredmeta'],
       'idprofesora' => (int)$data['idprofesora'],
       'idrazred'    => (int)$data['idrazred'],
-      'idciklusa'   => $data['idciklusa'] !== '' ? (int)$data['idciklusa'] : null,
+      'idciklusa'   => (int)$data['idciklusa'],
       'naziv'       => $data['naziv'],
     ]);
     Db::commit();
@@ -70,7 +79,7 @@ final class TemaService
       'idpredmeta'  => (int)$data['idpredmeta'],
       'idprofesora' => (int)$data['idprofesora'],
       'idrazred'    => (int)$data['idrazred'],
-      'idciklusa'   => $data['idciklusa'] !== '' ? (int)$data['idciklusa'] : null,
+      'idciklusa'   => (int)$data['idciklusa'],
       'naziv'       => $data['naziv'],
       'id'          => $id,
     ]);

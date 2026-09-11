@@ -9,7 +9,6 @@ use App\Services\TemaService;
 use App\Services\ProfesorService;
 use App\Services\PredmetService;
 use App\Services\RazredService;
-use App\Services\CiklusService;
 use App\Services\UcenikService;
 
 final class UvozController extends BaseController
@@ -17,6 +16,12 @@ final class UvozController extends BaseController
   public function uvezi(Request $req, Response $res): void
   {
     $this->requireRole($res, ['admin']);
+
+    $ciklusId = (int)$req->input('ciklus_id', 0);
+    if ($ciklusId <= 0) {
+      $this->fail($res, 'Ciklus je obavezan.');
+      return;
+    }
 
     $file = $req->file('excel');
     if (!$file) {
@@ -48,7 +53,6 @@ final class UvozController extends BaseController
       $predmeti  = PredmetService::list();
       $profesori = ProfesorService::list();
       $razredi   = RazredService::list();
-      $ciklusi   = CiklusService::list();
 
       $predmetMap = [];
       foreach ($predmeti as $p) {
@@ -67,12 +71,6 @@ final class UvozController extends BaseController
       foreach ($razredi as $r) {
         $razredMap[(int)$r['ID']] = $r;
         $razredMap[strtolower(trim($r['NAZIV']))] = $r;
-      }
-
-      $ciklusMap = [];
-      foreach ($ciklusi as $c) {
-        $ciklusMap[(int)$c['ID']] = $c;
-        $ciklusMap[strtolower(trim($c['NAZIV']))] = $c;
       }
 
       $lookup = function (string $val, array $map): ?array {
@@ -95,7 +93,6 @@ final class UvozController extends BaseController
         $predmet  = $lookup((string)($row[1] ?? ''), $predmetMap);
         $profesor = $lookup((string)($row[2] ?? ''), $profMap);
         $razred   = $lookup((string)($row[3] ?? ''), $razredMap);
-        $ciklus   = $lookup((string)($row[4] ?? ''), $ciklusMap);
 
         $errs = [];
         if (!$predmet)  $errs[] = 'nepoznat predmet';
@@ -107,11 +104,15 @@ final class UvozController extends BaseController
           continue;
         }
 
+        // Tema uvijek ide u ciklus čiju stranicu uvoza admin trenutno koristi
+        // (ciklus_id iz forme) - nema više per-red override preko stupca "Ciklus",
+        // jer je to ranije moglo tihо prebaciti temu u pogrešan (stari) ciklus
+        // ako bi vrijednost slučajno odgovarala ID-u/nazivu nekog drugog ciklusa.
         TemaService::create([
           'idpredmeta'  => (string)$predmet['ID'],
           'idprofesora' => (string)$profesor['ID'],
           'idrazred'    => (string)$razred['ID'],
-          'idciklusa'   => $ciklus ? (string)$ciklus['ID'] : '',
+          'idciklusa'   => (string)$ciklusId,
           'naziv'       => $naziv,
         ]);
         $ubaceno++;
@@ -129,6 +130,12 @@ final class UvozController extends BaseController
   public function uveziUcenike(Request $req, Response $res): void
   {
     $this->requireRole($res, ['admin']);
+
+    $ciklusId = (int)$req->input('ciklus_id', 0);
+    if ($ciklusId <= 0) {
+      $this->fail($res, 'Ciklus je obavezan.');
+      return;
+    }
 
     $file = $req->file('excel');
     if (!$file) {
@@ -175,7 +182,7 @@ final class UvozController extends BaseController
       };
 
       $postojeci = [];
-      foreach (UcenikService::list() as $u) {
+      foreach (UcenikService::list($ciklusId) as $u) {
         $postojeci[strtolower(trim($u['EMAIL']))] = true;
       }
 
@@ -208,7 +215,7 @@ final class UvozController extends BaseController
 
         $key = strtolower($email);
         if (isset($postojeci[$key]) || isset($obradjeno[$key])) {
-          $greske[] = "Red {$line}: email '{$email}' već postoji — preskočeno";
+          $greske[] = "Red {$line}: email '{$email}' već postoji u ovom ciklusu — preskočeno";
           continue;
         }
 
@@ -219,6 +226,7 @@ final class UvozController extends BaseController
           'email'    => $email,
           'lozinka'  => self::DEFAULT_LOZINKA,
           'smjer'    => (string)self::smjerIzUnosa((string)($row[4] ?? '')),
+          'idciklus' => (string)$ciklusId,
         ]);
 
         $obradjeno[$key] = true;

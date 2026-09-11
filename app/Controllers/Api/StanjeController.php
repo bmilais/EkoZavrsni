@@ -6,8 +6,6 @@ namespace App\Controllers\Api;
 use App\Core\Request;
 use App\Core\Response;
 use App\Services\Db;
-use App\Services\CiklusService;
-use App\Services\OdabirService;
 
 final class StanjeController extends BaseController
 {
@@ -16,23 +14,27 @@ final class StanjeController extends BaseController
     $this->requireRole($res, ['admin']);
     $db = Db::connect();
 
-    $ciklus = OdabirService::openCiklus();
-    $cikId  = $ciklus ? (int)$ciklus['ID'] : null;
+    $ciklusId = (int)$req->query('ciklus_id', 0);
+    if ($ciklusId <= 0) {
+      $this->fail($res, 'Ciklus je obavezan.');
+      return;
+    }
 
+    // Sve brojke su ovdje strogo vezane uz IZABRANI ciklus (t.IDCIKLUSA = :cik) -
+    // teme i odabiri iz drugih ciklusa se ne ubrajaju.
     $stmt = $db->prepare(
       "SELECT p.ID, p.PREZIME, p.IME,
               COUNT(DISTINCT t.ID) AS br_tema,
               COUNT(DISTINCT o.ID) AS br_odabira,
-              COUNT(DISTINCT CASE WHEN o.STATUS = 'aktivan' AND (:cik IS NULL OR ot.IDCIKLUSA = :cik) THEN o.ID END) AS br_aktivnih
+              COUNT(DISTINCT CASE WHEN o.STATUS = 'aktivan' THEN o.ID END) AS br_aktivnih
          FROM PROFESORI p
-         LEFT JOIN TEME t  ON t.IDPROFESORA = p.ID AND t.DELETED = 0
+         LEFT JOIN TEME t  ON t.IDPROFESORA = p.ID AND t.DELETED = 0 AND t.IDCIKLUSA = :cik1
          LEFT JOIN ODABIRI o ON o.IDTEME = t.ID AND o.DELETED = 0
-         LEFT JOIN TEME ot ON ot.ID = o.IDTEME
         WHERE p.DELETED = 0
         GROUP BY p.ID, p.PREZIME, p.IME
         ORDER BY br_tema DESC"
     );
-    $stmt->execute(['cik' => $cikId]);
+    $stmt->execute(['cik1' => $ciklusId]);
     $profesori = $stmt->fetchAll();
 
     $stmt = $db->prepare(
@@ -40,14 +42,13 @@ final class StanjeController extends BaseController
               COUNT(DISTINCT t.ID) AS br_tema,
               COUNT(DISTINCT o.ID) AS br_odabira
          FROM PREDMETI p
-         LEFT JOIN TEME t   ON t.IDPREDMETA = p.ID AND t.DELETED = 0
+         LEFT JOIN TEME t   ON t.IDPREDMETA = p.ID AND t.DELETED = 0 AND t.IDCIKLUSA = :cik2
          LEFT JOIN ODABIRI o ON o.IDTEME = t.ID AND o.DELETED = 0 AND o.STATUS = 'aktivan'
-         LEFT JOIN TEME ot ON ot.ID = o.IDTEME
-        WHERE p.DELETED = 0 AND (:cik IS NULL OR ot.IDCIKLUSA = :cik)
+        WHERE p.DELETED = 0
         GROUP BY p.ID, p.NAZIV, p.\"LIMIT\"
         ORDER BY br_tema DESC"
     );
-    $stmt->execute(['cik' => $cikId]);
+    $stmt->execute(['cik2' => $ciklusId]);
     $predmeti = $stmt->fetchAll();
     foreach ($predmeti as &$p) {
       $p['LIMIT']      = $p['LIMIT'] !== null ? (int)$p['LIMIT'] : null;
@@ -55,26 +56,9 @@ final class StanjeController extends BaseController
     }
     unset($p);
 
-    $ciklusi = CiklusService::list();
-    foreach ($ciklusi as &$c) {
-      $stmt = $db->prepare(
-        "SELECT COUNT(DISTINCT t.ID) AS br_tema, COUNT(DISTINCT o.ID) AS br_odabira
-           FROM TEME t
-           LEFT JOIN ODABIRI o ON o.IDTEME = t.ID AND o.DELETED = 0
-          WHERE t.IDCIKLUSA = :id AND t.DELETED = 0"
-      );
-      $stmt->execute(['id' => $c['ID']]);
-      $stat = $stmt->fetch();
-      $c['BR_TEMA']   = (int)($stat['BR_TEMA'] ?? 0);
-      $c['BR_ODABIRA'] = (int)($stat['BR_ODABIRA'] ?? 0);
-      $c['STATUS_LABEL'] = CiklusService::statusLabel($c['STATUS']);
-    }
-    unset($c);
-
     $this->ok($res, [
       'profesori' => $profesori,
       'predmeti'  => $predmeti,
-      'ciklusi'   => $ciklusi,
     ]);
   }
 }

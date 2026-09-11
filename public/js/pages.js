@@ -40,8 +40,32 @@ const Pages = {
   },
 
   // ---------- dashboardi ----------
-  admin() {
-    AdminView.render(window.App.user);
+  async admin() {
+    const u = window.App.user;
+    let ciklusi = [];
+    try {
+      const res = await CiklusModel.list();
+      ciklusi = res.data || [];
+    } catch (e) { View.error(e); return; }
+
+    let selectedId = SelectedCiklus.get();
+    let selected = selectedId ? ciklusi.find(c => parseInt(c.ID, 10) === selectedId) : null;
+    if (selectedId && !selected) {
+      // Zapamćeni ciklus više ne postoji (npr. obrisan) - zaboravi odabir.
+      SelectedCiklus.clear();
+    }
+
+    AdminView.render(u, ciklusi, selected || null);
+  },
+
+  adminOdaberiCiklus(id) {
+    SelectedCiklus.set(parseInt(id, 10));
+    this.admin();
+  },
+
+  adminPromijeniCiklus() {
+    SelectedCiklus.clear();
+    this.admin();
   },
 
   nastavnik() {
@@ -142,6 +166,11 @@ const Pages = {
         const res = await CiklusModel.get(id);
         values = res.data;
       } catch (e) { View.error(e); return; }
+      if (values.status === 'arhivirano') {
+        UI.toast('Arhivirani ciklus se ne može uređivati.', 'error');
+        window.Router.navigate('#/admin/ciklusi');
+        return;
+      }
     }
     CiklusView.form(id, values);
   },
@@ -206,11 +235,46 @@ const Pages = {
     ProfesorView.form(id, values);
   },
 
-  // ---------- učenici ----------
-  async uceniciList() {
+  // ---------- učenici (uvijek u kontekstu ciklusa) ----------
+  // Ciklus se uzima iz URL-a (?ciklus_id=) ako je zadan, inače iz ciklusa
+  // odabranog na admin panelu (SelectedCiklus). Koji god ciklus se ovdje
+  // razriješi, postaje (ponovno) "trenutno odabrani" - tako da otvaranje
+  // stranice s eksplicitnim ciklus_id (npr. s popisa ciklusa) ažurira i
+  // odabir na admin panelu.
+  async ucenikCiklusOrRedirect(ctx) {
+    const ciklusId = ctx.params.get('ciklus_id') ? parseInt(ctx.params.get('ciklus_id'), 10) : (SelectedCiklus.get() || 0);
+    if (!ciklusId) {
+      UI.toast('Prvo odaberi ciklus.', 'error');
+      window.Router.navigate('#/admin');
+      return null;
+    }
     try {
-      const res = await UcenikModel.list();
-      UcenikView.list(res.data || []);
+      const res = await CiklusModel.get(ciklusId);
+      const c = res.data;
+      // CiklusService::get() vraća polja malim slovima (za formu); ovdje ih
+      // normaliziramo na velika slova da se poklapaju s ostatkom UI-ja
+      // (CiklusModel.list(), UcenikView, TemaView...).
+      const ciklus = {
+        ID: parseInt(c.id, 10),
+        NAZIV: c.naziv,
+        SKOLSKA_GODINA: c.skolska_godina,
+        STATUS: c.status,
+      };
+      SelectedCiklus.set(ciklus.ID);
+      return ciklus;
+    } catch (e) {
+      SelectedCiklus.clear();
+      View.error(e);
+      return null;
+    }
+  },
+
+  async uceniciList(ctx) {
+    const ciklus = await this.ucenikCiklusOrRedirect(ctx);
+    if (!ciklus) return;
+    try {
+      const res = await UcenikModel.list(ciklus.ID);
+      UcenikView.list(res.data || [], ciklus);
     } catch (e) { View.error(e); }
   },
 
@@ -221,55 +285,99 @@ const Pages = {
     } catch (e) { UI.toast(e.message, 'error'); }
   },
 
+  posaljiLinkSvima(ciklusId) {
+    UI.confirm({
+      title: 'Pošalji magic link svima',
+      body: 'Poslati magic link svim učenicima u ovom ciklusu putem emaila? Ovo može potrajati nekoliko trenutaka za veći broj učenika.',
+      confirmText: 'Pošalji svima',
+      danger: false,
+      onConfirm: async () => {
+        const res = await UcenikModel.posaljiLinkSvima(ciklusId);
+        const greske = res.greske || [];
+        if (greske.length === 0) {
+          UI.toast('Magic link poslan svim učenicima (' + res.poslano + '/' + res.ukupno + ').', 'success');
+        } else {
+          UI.toast('Poslano ' + res.poslano + '/' + res.ukupno + '. ' + greske.length + ' greška(e) — vidi popis.', 'error', 6000);
+          UI.modal({
+            title: 'Greške pri slanju magic linkova',
+            body: '<ul class="sm">' + greske.map(g => '<li>' + UI.esc(g) + '</li>').join('') + '</ul>',
+            foot: '<button class="btn secondary" onclick="UI.closeModal()">Zatvori</button>',
+          });
+        }
+      },
+    });
+  },
+
   async uceniciForm(ctx) {
     const id = ctx.params.get('id') ? parseInt(ctx.params.get('id'), 10) : 0;
     let values = {};
+    let ciklusId = ctx.params.get('ciklus_id') ? parseInt(ctx.params.get('ciklus_id'), 10) : 0;
     if (id > 0) {
       try {
         const res = await UcenikModel.get(id);
         values = res.data;
+        ciklusId = ciklusId || parseInt(values.idciklus, 10);
       } catch (e) { View.error(e); return; }
+    }
+    if (!ciklusId) {
+      UI.toast('Prvo odaberi ciklus.', 'error');
+      window.Router.navigate('#/admin/ciklusi');
+      return;
     }
     let razredi = [];
     try {
       const r = await RazredModel.list();
       razredi = r.data.map(x => ({ value: x.ID, label: x.NAZIV }));
     } catch (e) { View.error(e); return; }
-    UcenikView.form(id, values, razredi);
+    UcenikView.form(id, values, razredi, ciklusId);
   },
 
-  // ---------- teme ----------
-  async temeList() {
+  // ---------- teme (uvijek u kontekstu ciklusa) ----------
+  async temeList(ctx) {
+    const ciklus = await this.ucenikCiklusOrRedirect(ctx);
+    if (!ciklus) return;
     try {
-      const res = await TemaModel.list();
-      TemaView.list(res.data || []);
+      const res = await TemaModel.list(ciklus.ID);
+      TemaView.list(res.data || [], ciklus);
     } catch (e) { View.error(e); }
   },
 
   async temeForm(ctx) {
     const id = ctx.params.get('id') ? parseInt(ctx.params.get('id'), 10) : 0;
     let values = {};
+    let ciklusId = ctx.params.get('ciklus_id') ? parseInt(ctx.params.get('ciklus_id'), 10) : 0;
     if (id > 0) {
       try {
         const res = await TemaModel.get(id);
         values = res.data;
+        ciklusId = ciklusId || parseInt(values.idciklusa, 10);
       } catch (e) { View.error(e); return; }
     }
+    if (!ciklusId) {
+      UI.toast('Prvo odaberi ciklus.', 'error');
+      window.Router.navigate('#/admin/ciklusi');
+      return;
+    }
 
-    let opt;
+    let opt, ciklus;
     try {
       opt = await TemaModel.opcije();
+      const c = await CiklusModel.get(ciklusId);
+      ciklus = c.data;
+      opt.ciklusNaziv = ciklus.naziv;
     } catch (e) { View.error(e); return; }
 
-    TemaView.form(id, values, opt);
+    TemaView.form(id, values, opt, ciklusId);
   },
 
-  // ---------- odabiri ----------
+  // ---------- odabiri (uvijek u kontekstu ciklusa) ----------
   async odabiriList(ctx) {
+    const ciklus = await this.ucenikCiklusOrRedirect(ctx);
+    if (!ciklus) return;
     const filter = ctx.params.get('filter') || 'aktivni';
     try {
-      const res = await OdabirModel.list(filter);
-      OdabirView.list(res.data || [], filter);
+      const res = await OdabirModel.list(ciklus.ID, filter);
+      OdabirView.list(res.data || [], filter, ciklus);
     } catch (e) { View.error(e); }
   },
 
@@ -283,31 +391,41 @@ const Pages = {
     });
   },
 
-  // ---------- stanje ----------
-  async stanje() {
+  // ---------- stanje (uvijek u kontekstu ciklusa) ----------
+  async stanje(ctx) {
+    const ciklus = await this.ucenikCiklusOrRedirect(ctx);
+    if (!ciklus) return;
     try {
-      StanjeView.render(await StanjeModel.get());
+      const res = await StanjeModel.get(ciklus.ID);
+      StanjeView.render(res, ciklus);
     } catch (e) { View.error(e); }
   },
 
-  // ---------- uvoz ----------
-  uvoz() {
+  // ---------- uvoz (uvijek u kontekstu ciklusa) ----------
+  async uvoz(ctx) {
+    const ciklus = await this.ucenikCiklusOrRedirect(ctx);
+    if (!ciklus) return;
     UvozView.render(
-      'Uvoz tema iz Excela',
-      '<table><tr><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr>' +
-      '<tr><td>Naziv teme</td><td>Predmet (ID ili naziv)</td><td>Profesor (ID ili "Prezime Ime")</td><td>Razred (ID ili naziv)</td><td>Ciklus (ID ili naziv, opcionalno)</td></tr></table>',
-      '#/admin/teme'
+      'Uvoz tema iz Excela — ' + UI.esc(ciklus.NAZIV),
+      '<table><tr><th>A</th><th>B</th><th>C</th><th>D</th></tr>' +
+      '<tr><td>Naziv teme</td><td>Predmet (ID ili naziv)</td><td>Profesor (ID ili "Prezime Ime")</td><td>Razred (ID ili naziv)</td></tr></table>' +
+      '<p class="muted">Sve uvezene teme idu u ovaj ciklus (' + UI.esc(ciklus.NAZIV) + ') — stupac za ciklus se više ne koristi jer je znao tiho prebaciti temu u pogrešan ciklus.</p>',
+      '#/admin/teme?ciklus_id=' + ciklus.ID,
+      { ciklus_id: ciklus.ID }
     );
     UvozView.attachSubmit('tema', fd => TemaModel.uvoz(fd));
   },
 
-  uvozUcenici() {
+  async uvozUcenici(ctx) {
+    const ciklus = await this.ucenikCiklusOrRedirect(ctx);
+    if (!ciklus) return;
     UvozView.render(
-      'Uvoz učenika iz Excela',
+      'Uvoz učenika iz Excela — ' + UI.esc(ciklus.NAZIV),
       '<table><tr><th>A</th><th>B</th><th>C</th><th>D</th><th>E</th></tr>' +
       '<tr><td>Ime</td><td>Prezime</td><td>Email</td><td>Razred (ID ili naziv)</td><td>Smjer (Ekonomist/Trgovac, opcionalno)</td></tr></table>' +
-      '<p class="muted">Nova lozinka se postavlja na "1234" (prijava ide preko magic linka).</p>',
-      '#/admin/ucenici'
+      '<p class="muted">Nova lozinka se postavlja na "1234" (prijava ide preko magic linka). Učenici se uvoze u ovaj ciklus.</p>',
+      '#/admin/ucenici?ciklus_id=' + ciklus.ID,
+      { ciklus_id: ciklus.ID }
     );
     UvozView.attachSubmit('učenika', fd => UcenikModel.uvoz(fd));
   },

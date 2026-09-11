@@ -7,7 +7,6 @@ use App\Core\Request;
 use App\Core\Response;
 use App\Services\Auth;
 use App\Services\Db;
-use App\Services\OdabirService;
 
 final class OdabirController extends BaseController
 {
@@ -16,15 +15,20 @@ final class OdabirController extends BaseController
     $this->requireRole($res, ['admin']);
     $db = Db::connect();
 
+    $ciklusId = (int)$req->query('ciklus_id', 0);
+    if ($ciklusId <= 0) {
+      $this->fail($res, 'Ciklus je obavezan.');
+      return;
+    }
+
     $filter = (string)($req->query('filter', 'aktivni') ?? 'aktivni');
-    $where  = 'o.DELETED = 0';
-    $ciklus = OdabirService::openCiklus();
-    $cikId  = $ciklus ? (int)$ciklus['ID'] : null;
+    $where  = 'o.DELETED = 0 AND t.IDCIKLUSA = :ciklus';
     if ($filter === 'aktivni') {
-      $where .= " AND o.STATUS = 'aktivan' AND (:cik IS NULL OR t.IDCIKLUSA = :cik)";
+      $where .= " AND o.STATUS = 'aktivan'";
     } elseif ($filter === 'ponisteni') {
       $where .= " AND o.STATUS = 'ponisten'";
     }
+    // filter === 'svi' -> bez dodatnog uvjeta na status
 
     $stmt = $db->prepare(
       "SELECT o.ID AS OID, o.STATUS, o.OBRAZLOZENJE,
@@ -41,7 +45,7 @@ final class OdabirController extends BaseController
         WHERE {$where}
         ORDER BY o.CREATED DESC"
     );
-    $stmt->execute($cikId !== null ? ['cik' => $cikId] : ['cik' => null]);
+    $stmt->execute(['ciklus' => $ciklusId]);
     $this->ok($res, ['data' => $stmt->fetchAll()]);
   }
 

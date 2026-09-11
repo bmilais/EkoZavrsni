@@ -49,6 +49,7 @@ return function (Router $router): void {
   $router->post('/api/ucenici/spremi',     [$ucenik, 'spremi']);
   $router->post('/api/ucenici/obrisi',     [$ucenik, 'obrisi']);
   $router->post('/api/ucenici/posalji-link', [$ucenik, 'posaljiLink']);
+  $router->post('/api/ucenici/posalji-link-svima', [$ucenik, 'posaljiLinkSvima']);
 
   $uvoz = new UvozController();
   $router->post('/api/teme/uvoz',    [$uvoz, 'uvezi']);

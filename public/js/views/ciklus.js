@@ -21,7 +21,10 @@ const CiklusView = {
 
   akcije(row) {
     const labels = { priprema: 'Priprema', otvoreno: 'Otvoreno', zakljucano: 'Zaključano', arhivirano: 'Arhivirano' };
-    let h = '<a class="btn link" href="#/admin/ciklusi/uredi?id=' + row.ID + '">Uredi</a>';
+    let h = '<a class="btn link" href="#/admin/ucenici?ciklus_id=' + row.ID + '">Pregledaj učenike i teme ciklusa</a>';
+    if (row.STATUS !== 'arhivirano') {
+      h += '<a class="btn link" href="#/admin/ciklusi/uredi?id=' + row.ID + '">Uredi parametre ciklusa</a>';
+    }
     (row.MOGUCI_STATUSI || []).forEach(s => {
       h += '<button class="btn link" onclick="Pages.ciklusStatus(' + row.ID + ', \'' + s + '\')">' + labels[s] + '</button>';
     });

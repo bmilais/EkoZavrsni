@@ -53,8 +53,20 @@ final class CiklusService
     return Db::lastId('CIKLUSI_ID_SEQ');
   }
 
-  public static function update(int $id, array $data): void
+  /**
+   * Vraća prazan string ako je uspjelo, inače poruku greške (npr. ciklus
+   * je arhiviran pa se njegovi parametri više ne smiju mijenjati).
+   */
+  public static function update(int $id, array $data): string
   {
+    $ciklus = self::get($id);
+    if (!$ciklus) {
+      return 'Ciklus nije pronađen.';
+    }
+    if ($ciklus['status'] === 'arhivirano') {
+      return 'Arhivirani ciklus se ne može uređivati.';
+    }
+
     $stmt = Db::connect()->prepare(
       'UPDATE CIKLUSI
           SET SKOLSKA_GODINA         = :skolska_godina,
@@ -73,6 +85,7 @@ final class CiklusService
       'id'             => $id,
     ]);
     Db::commit();
+    return '';
   }
 
   public static function delete(int $id): void

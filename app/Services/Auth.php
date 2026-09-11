@@ -50,7 +50,7 @@ final class Auth
   public static function attemptToken(string $token): bool
   {
     $stmt = Db::connect()->prepare(
-      'SELECT ID, IDRAZRED, IME, PREZIME, EMAIL
+      'SELECT ID, IDRAZRED, IME, PREZIME, EMAIL, IDCIKLUS
          FROM UCENICI
         WHERE HASH = :hash AND DELETED = 0'
     );
@@ -67,6 +67,7 @@ final class Auth
       'prezime'   => $row['PREZIME'],
       'email'     => $row['EMAIL'],
       'razred_id' => (int)$row['IDRAZRED'],
+      'idciklus'  => (int)$row['IDCIKLUS'],
       'uloga'     => 'ucenik',
     ]);
 

@@ -16,7 +16,7 @@ final class UcenikPanelController extends BaseController
     $u = Auth::user();
 
     $this->ok($res, [
-      'data'   => OdabirService::dostupneTeme((int)$u['razred_id'], (int)$u['id']),
+      'data'   => OdabirService::dostupneTeme((int)$u['razred_id'], (int)$u['id'], (int)$u['idciklus']),
       'ciklus' => OdabirService::openCiklus(),
     ]);
   }
@@ -35,7 +35,7 @@ final class UcenikPanelController extends BaseController
     $u = Auth::user();
 
     $temaId = $this->intParam($req, 'tema_id');
-    $greska = OdabirService::odaberi((int)$u['id'], (int)$u['razred_id'], $temaId);
+    $greska = OdabirService::odaberi((int)$u['id'], (int)$u['razred_id'], (int)$u['idciklus'], $temaId);
 
     if ($greska !== null) {
       $this->fail($res, $greska);
