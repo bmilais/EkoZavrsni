@@ -2,6 +2,7 @@
 const ProfesorView = {
   list(data) {
     Crud.list({
+      bulk: { url: 'profesori/obrisi-vise', noun: ['profesor', 'profesora', 'profesora'] },
       title: 'Profesori',
       newBtn: { label: '+ Novi profesor', route: '/admin/profesori/novi' },
       columns: [

@@ -2,6 +2,7 @@
 const PredmetView = {
   list(data) {
     Crud.list({
+      bulk: { url: 'predmeti/obrisi-vise', noun: ['predmet', 'predmeta', 'predmeta'] },
       title: 'Predmeti',
       newBtn: { label: '+ Novi predmet', route: '/admin/predmeti/novi' },
       columns: [

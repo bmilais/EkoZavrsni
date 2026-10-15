@@ -92,4 +92,10 @@ final class TemaService
     $stmt->execute(['id' => $id]);
     Db::commit();
   }
+
+  /** @param int[] $ids */
+  public static function deleteMany(array $ids): int
+  {
+    return Db::softDeleteMany('TEME', $ids);
+  }
 }

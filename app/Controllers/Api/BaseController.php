@@ -44,4 +44,15 @@ abstract class BaseController
     $val = $req->input($key) ?? $req->query($key) ?? $default;
     return (int)$val;
   }
+
+  /**
+   * Lista ID-eva iz JSON tijela (npr. {"ids":[1,2,3]}) - samo pozitivni, bez duplikata.
+   * @return int[]
+   */
+  protected function idsParam(Request $req, string $key = 'ids'): array
+  {
+    $raw = $req->input($key, []);
+    if (!is_array($raw)) return [];
+    return array_values(array_unique(array_filter(array_map('intval', $raw), fn($i) => $i > 0)));
+  }
 }

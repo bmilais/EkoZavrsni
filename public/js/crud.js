@@ -27,10 +27,21 @@ const Crud = {
     const headers = config.columns.map(c => c.label);
     if (config.rowActions) headers.push('Akcije');
 
+    // Skupno označavanje: prvi stupac s checkboxima + "označi sve" u zaglavlju
+    if (config.bulk) {
+      headers.unshift('<input type="checkbox" id="bulk-all" title="Označi sve" aria-label="Označi sve">');
+      rowsWithActions.forEach((cells, i) => {
+        cells.unshift('<input type="checkbox" class="bulk-cb" value="' + UI.esc(String(data[i].ID)) + '" aria-label="Označi red">');
+      });
+    }
+
     let toolbar = '';
-    if (config.newBtn || config.extraToolbar) {
+    const bulkBtn = config.bulk
+      ? ' <button type="button" class="btn danger small" id="bulk-delete" disabled>Obriši označene</button>'
+      : '';
+    if (config.newBtn || config.extraToolbar || config.bulk) {
       toolbar = '<div class="page-toolbar">' +
-        '<div>' + (config.extraToolbar || '') + '</div>' +
+        '<div>' + (config.extraToolbar || '') + bulkBtn + '</div>' +
         (config.newBtn
           ? '<a class="btn" href="#' + config.newBtn.route + '">' + UI.esc(config.newBtn.label) + '</a>'
           : '') +
@@ -47,7 +58,59 @@ const Crud = {
     html += '</div>';
 
     app.innerHTML = html;
+    if (config.bulk) Crud.wireBulk(config.bulk);
     if (config.afterRender) config.afterRender();
+  },
+
+  /**
+   * Povezuje checkboxe, "označi sve" i gumb "Obriši označene".
+   * bulk = { url: 'predmeti/obrisi-vise', noun: ['predmet','predmeta','predmeta'] }
+   * (oblici za 1 / 2-4 / 5+ zapisa, npr. "1 predmet", "3 predmeta", "12 predmeta")
+   */
+  wireBulk(bulk) {
+    const all = document.getElementById('bulk-all');
+    const btn = document.getElementById('bulk-delete');
+    const boxes = () => Array.from(document.querySelectorAll('.bulk-cb'));
+    const checked = () => boxes().filter(b => b.checked);
+
+    const noun = (n) => {
+      const f = bulk.noun || ['zapis', 'zapisa', 'zapisa'];
+      const mod10 = n % 10, mod100 = n % 100;
+      if (mod10 === 1 && mod100 !== 11) return f[0];
+      if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return f[1];
+      return f[2];
+    };
+
+    const refresh = () => {
+      const n = checked().length, total = boxes().length;
+      btn.disabled = n === 0;
+      btn.textContent = n > 0 ? 'Obriši označene (' + n + ')' : 'Obriši označene';
+      all.checked = total > 0 && n === total;
+      all.indeterminate = n > 0 && n < total;
+      all.disabled = total === 0;
+    };
+
+    all.onchange = () => { boxes().forEach(b => { b.checked = all.checked; }); refresh(); };
+    boxes().forEach(b => { b.onchange = refresh; });
+    refresh();
+
+    btn.onclick = () => {
+      const ids = checked().map(b => parseInt(b.value, 10));
+      if (ids.length === 0) return;
+      UI.confirm({
+        title: 'Potvrda brisanja',
+        body: '<p>Obrisati ' + ids.length + ' ' + UI.esc(noun(ids.length)) + '?</p>',
+        confirmText: 'Obriši',
+        onConfirm: async () => {
+          const res = await API.post(bulk.url, { ids });
+          const n = res.deleted ?? ids.length;
+          let msg = 'Obrisano: ' + n + '.';
+          if (res.skippedSelf) msg += ' Vlastiti račun je preskočen.';
+          UI.toast(msg, 'success');
+          window.Router.run();
+        },
+      });
+    };
   },
 
   form(config) {

@@ -220,6 +220,11 @@ form.form { background: var(--surface); border: 1px solid var(--line); border-ra
 .back-link a:hover { color: var(--green-600); text-decoration: none; }
 .page-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 10px; flex-wrap: wrap; }
 .page-toolbar a.btn { text-decoration: none; }
+/* Skupno označavanje u tablicama */
+.bulk-cb, #bulk-all { width: 16px; height: 16px; cursor: pointer; accent-color: var(--green-600); }
+th:has(> #bulk-all), td:has(> .bulk-cb) { width: 1%; padding-right: 4px; }
+#bulk-delete { margin-left: 6px; }
+
 
 /* ---------- Toast ---------- */
 #toast-wrap { position: fixed; top: 18px; right: 18px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }

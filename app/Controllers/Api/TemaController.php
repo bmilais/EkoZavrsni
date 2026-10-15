@@ -100,4 +100,18 @@ final class TemaController extends BaseController
 
     $this->ok($res);
   }
+
+  public function obrisiVise(Request $req, Response $res): void
+  {
+    $this->requireRole($res, ['admin']);
+
+    $ids = $this->idsParam($req);
+    if (!$ids) {
+      $this->fail($res, 'Nije odabran nijedan zapis.');
+      return;
+    }
+
+    $deleted = TemaService::deleteMany($ids);
+    $this->ok($res, ['deleted' => $deleted]);
+  }
 }

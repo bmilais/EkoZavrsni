@@ -46,6 +46,45 @@ final class Db
     self::connect()->exec('COMMIT');
   }
 
+  /**
+   * Skupno "soft delete" (DELETED = 1) za više ID-eva odjednom.
+   * Ime tablice dolazi isključivo iz koda servisa (nikad od korisnika),
+   * a ID-evi se šalju kao bind parametri. Oracle IN lista ima limit od
+   * 1000 elemenata pa se radi u paketima po 500. Jedan COMMIT na kraju.
+   *
+   * @param int[] $ids
+   * @return int broj stvarno obrisanih redaka
+   */
+  public static function softDeleteMany(string $table, array $ids): int
+  {
+    if (!preg_match('/^[A-Z_]+$/', $table)) {
+      throw new \InvalidArgumentException('Neispravno ime tablice.');
+    }
+
+    $ids = array_values(array_unique(array_filter(array_map('intval', $ids), fn($i) => $i > 0)));
+    if (!$ids) return 0;
+
+    $db      = self::connect();
+    $deleted = 0;
+
+    foreach (array_chunk($ids, 500) as $chunk) {
+      $params = [];
+      $marks  = [];
+      foreach ($chunk as $i => $id) {
+        $marks[]           = ':id' . $i;
+        $params['id' . $i] = $id;
+      }
+      $stmt = $db->prepare(
+        "UPDATE {$table} SET DELETED = 1 WHERE DELETED = 0 AND ID IN (" . implode(',', $marks) . ')'
+      );
+      $stmt->execute($params);
+      $deleted += $stmt->rowCount();
+    }
+
+    self::commit();
+    return $deleted;
+  }
+
   public static function ping(): bool
   {
     try {

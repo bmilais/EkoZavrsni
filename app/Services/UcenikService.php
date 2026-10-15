@@ -97,6 +97,12 @@ final class UcenikService
     Db::commit();
   }
 
+  /** @param int[] $ids */
+  public static function deleteMany(array $ids): int
+  {
+    return Db::softDeleteMany('UCENICI', $ids);
+  }
+
   public static function smjerLabel(int $smjer): string
   {
     return $smjer === 1 ? 'Ekonomist' : 'Trgovac';

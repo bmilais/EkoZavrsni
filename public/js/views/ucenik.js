@@ -3,6 +3,7 @@ const UcenikView = {
   list(data, ciklus) {
     const cid = ciklus.ID;
     Crud.list({
+      bulk: { url: 'ucenici/obrisi-vise', noun: ['učenik', 'učenika', 'učenika'] },
       title: 'Učenici — ' + UI.esc(ciklus.NAZIV),
       subtitle: 'Ciklus: ' + UI.esc(ciklus.SKOLSKA_GODINA || ''),
       backRoute: '/admin/ciklusi',

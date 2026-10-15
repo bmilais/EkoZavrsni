@@ -5,6 +5,7 @@ namespace App\Controllers\Api;
 
 use App\Core\Request;
 use App\Core\Response;
+use App\Services\Auth;
 use App\Services\ProfesorService;
 
 final class ProfesorController extends BaseController
@@ -76,5 +77,22 @@ final class ProfesorController extends BaseController
     }
 
     $this->ok($res);
+  }
+
+  public function obrisiVise(Request $req, Response $res): void
+  {
+    $this->requireRole($res, ['admin']);
+
+    $ids = $this->idsParam($req);
+    $self    = (int)(Auth::user()['id'] ?? 0);
+    $hadSelf = in_array($self, $ids, true);
+    $ids     = array_values(array_filter($ids, fn($i) => $i !== $self));
+    if (!$ids) {
+      $this->fail($res, $hadSelf ? 'Ne možete obrisati vlastiti račun.' : 'Nije odabran nijedan zapis.');
+      return;
+    }
+
+    $deleted = ProfesorService::deleteMany($ids);
+    $this->ok($res, ['deleted' => $deleted, 'skippedSelf' => $hadSelf]);
   }
 }

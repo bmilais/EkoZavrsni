@@ -3,6 +3,7 @@ const TemaView = {
   list(data, ciklus) {
     const cid = ciklus.ID;
     Crud.list({
+      bulk: { url: 'teme/obrisi-vise', noun: ['tema', 'teme', 'tema'] },
       title: 'Teme — ' + UI.esc(ciklus.NAZIV),
       subtitle: 'Ciklus: ' + UI.esc(ciklus.SKOLSKA_GODINA || ''),
       backRoute: '/admin/ciklusi',

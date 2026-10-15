@@ -38,16 +38,19 @@ return function (Router $router): void {
   $router->get('/api/predmeti',         [$predmet, 'index']);
   $router->post('/api/predmeti/spremi', [$predmet, 'spremi']);
   $router->post('/api/predmeti/obrisi', [$predmet, 'obrisi']);
+  $router->post('/api/predmeti/obrisi-vise', [$predmet, 'obrisiVise']);
 
   $profesor = new ProfesorController();
   $router->get('/api/profesori',         [$profesor, 'index']);
   $router->post('/api/profesori/spremi', [$profesor, 'spremi']);
   $router->post('/api/profesori/obrisi', [$profesor, 'obrisi']);
+  $router->post('/api/profesori/obrisi-vise', [$profesor, 'obrisiVise']);
 
   $ucenik = new UcenikController();
   $router->get('/api/ucenici',             [$ucenik, 'index']);
   $router->post('/api/ucenici/spremi',     [$ucenik, 'spremi']);
   $router->post('/api/ucenici/obrisi',     [$ucenik, 'obrisi']);
+  $router->post('/api/ucenici/obrisi-vise', [$ucenik, 'obrisiVise']);
   $router->post('/api/ucenici/posalji-link', [$ucenik, 'posaljiLink']);
   $router->post('/api/ucenici/posalji-link-svima', [$ucenik, 'posaljiLinkSvima']);
 
@@ -60,6 +63,7 @@ return function (Router $router): void {
   $router->get('/api/teme/opcije',  [$tema, 'opcije']);
   $router->post('/api/teme/spremi', [$tema, 'spremi']);
   $router->post('/api/teme/obrisi', [$tema, 'obrisi']);
+  $router->post('/api/teme/obrisi-vise', [$tema, 'obrisiVise']);
 
   $odabir = new OdabirController();
   $router->get('/api/odabiri',          [$odabir, 'index']);

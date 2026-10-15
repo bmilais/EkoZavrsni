@@ -76,6 +76,12 @@ final class ProfesorService
     Db::commit();
   }
 
+  /** @param int[] $ids */
+  public static function deleteMany(array $ids): int
+  {
+    return Db::softDeleteMany('PROFESORI', $ids);
+  }
+
   public static function ulogaLabel(int $ovlasti): string
   {
     return $ovlasti === 0 ? 'Admin' : 'Nastavnik';
