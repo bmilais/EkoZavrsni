@@ -9,9 +9,12 @@ const OdabirView = {
     let akcije = '';
     const data = rows.map(o => {
       if (o.STATUS === 'aktivan') {
-        akcije = '<button class="btn link danger" onclick="Pages.odabiriPonisti(' + o.OID + ', \'' +
-          encodeURIComponent(o.U_PREZIME + ' ' + o.U_IME) + '\', \'' +
-          encodeURIComponent(o.TEMA_NAZIV) + '\')">Poništi</button>';
+        // Ime učenika i naziv teme idu u data- atribute (npr. prezime "O'Brien"
+        // bi inače prekinulo JS string u onclick-u).
+        akcije = '<button class="btn link danger"' +
+          ' data-ucenik="' + UI.esc(o.U_PREZIME + ' ' + o.U_IME) + '"' +
+          ' data-tema="' + UI.esc(o.TEMA_NAZIV) + '"' +
+          ' onclick="Pages.odabiriPonisti(' + Number(o.OID) + ', this.dataset.ucenik, this.dataset.tema)">Poništi</button>';
       } else {
         akcije = UI.esc(o.OBRAZLOZENJE || '-');
       }

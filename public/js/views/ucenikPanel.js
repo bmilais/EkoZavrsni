@@ -7,12 +7,18 @@ const UcenikPanelView = {
 
     let aktivniHtml = '<p class="muted">Trenutno nemate odabranu temu.</p>';
     if (aktivni) {
+      const mozePonistiti = cikId !== null && Number(aktivni.IDCIKLUSA) === cikId;
+      // Naziv teme ide u data- atribut (escapiran s UI.esc) i čita se kroz
+      // this.dataset, pa apostrof ili JS u nazivu ne mogu prekinuti onclick.
       aktivniHtml =
         '<div class="card">' +
         '<p><strong>' + UI.esc(aktivni.TEMA_NAZIV) + '</strong></p>' +
         '<p class="muted">' + UI.esc(aktivni.PREDMET_NAZIV) + ' — mentor: ' + UI.esc(aktivni.PROFESOR_NAZIV) + '</p>' +
         '<p class="muted">Odabrano: ' + View.fmtDate(aktivni.DATUM) + '</p>' +
-        '<button class="btn danger small" onclick="Pages.ucenikPonisti(' + aktivni.OID + ', \'' + encodeURIComponent(aktivni.TEMA_NAZIV) + '\')">Poništi odabir</button>' +
+        (mozePonistiti
+          ? '<button class="btn danger small" data-naziv="' + UI.esc(aktivni.TEMA_NAZIV) + '"' +
+            ' onclick="Pages.ucenikPonisti(' + Number(aktivni.OID) + ', this.dataset.naziv)">Poništi odabir</button>'
+          : '<p class="muted">Ciklus je zaključan — odabir je konačan. Za promjenu se obratite administratoru.</p>') +
         '</div>';
     }
 
@@ -52,7 +58,8 @@ const UcenikPanelView = {
           } else if (punMentor) {
             akcija = UI.badge('Mentor pun', 'orange');
           } else {
-            akcija = '<button class="btn small" onclick="Pages.ucenikOdaberi(' + t.ID + ', \'' + encodeURIComponent(t.NAZIV) + '\')">Odaberi</button>';
+            akcija = '<button class="btn small" data-naziv="' + UI.esc(t.NAZIV) + '"' +
+              ' onclick="Pages.ucenikOdaberi(' + Number(t.ID) + ', this.dataset.naziv)">Odaberi</button>';
           }
 
           const pop = (br, lim) => {

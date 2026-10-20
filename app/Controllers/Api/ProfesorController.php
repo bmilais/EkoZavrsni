@@ -21,6 +21,9 @@ final class ProfesorController extends BaseController
         $this->fail($res, 'Profesor nije pronađen.', 404);
         return;
       }
+      // Lozinka se nikad ne šalje frontendu. Uređivanje i dalje radi:
+      // prazno polje lozinke znači "zadrži postojeću".
+      unset($profesor['lozinka']);
       $this->ok($res, ['data' => $profesor]);
       return;
     }
@@ -53,11 +56,15 @@ final class ProfesorController extends BaseController
       return;
     }
 
-    $postojeci = $id > 0 ? ProfesorService::get($id) : null;
-    if ($data['lozinka'] === '' && $postojeci) {
-      $data['lozinka'] = $postojeci['lozinka'];
+    // Admin ne smije sam sebi oduzeti admin ovlasti (ostao bi bez pristupa).
+    $self = (int)(Auth::user()['id'] ?? 0);
+    if ($id > 0 && $id === $self && (int)$data['ovlasti'] !== 0) {
+      $this->fail($res, 'Ne možete sami sebi oduzeti admin ovlasti.');
+      return;
     }
 
+    // Prazna lozinka kod uređivanja = zadrži postojeću
+    // (ProfesorService::update tada ne dira kolonu LOZINKA).
     if ($id > 0) {
       ProfesorService::update($id, $data);
     } else {
@@ -72,6 +79,10 @@ final class ProfesorController extends BaseController
     $this->requireRole($res, ['admin']);
 
     $id = $this->intParam($req, 'id');
+    if ($id > 0 && $id === (int)(Auth::user()['id'] ?? 0)) {
+      $this->fail($res, 'Ne možete obrisati vlastiti račun.');
+      return;
+    }
     if ($id > 0) {
       ProfesorService::delete($id);
     }

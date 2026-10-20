@@ -44,12 +44,14 @@ const UI = {
       btn.disabled = true;
       btn.textContent = '...';
       try {
-        await onConfirm();
-        UI.closeModal();
+        // onConfirm može vratiti false kad je sam otvorio novi modal
+        // (npr. popis grešaka) koji se ne smije odmah zatvoriti.
+        const rezultat = await onConfirm();
+        if (rezultat !== false) UI.closeModal();
       } catch (e) {
         btn.disabled = false;
         btn.textContent = confirmText;
-        UI.toast(e.message, 'error');
+        UI.toast(e.message, 'error', 8000);
       }
     };
   },
@@ -107,7 +109,8 @@ const UI = {
           break;
         default:
           input = '<input type="' + (f.type || 'text') + '" name="' + f.name + '" value="' + UI.esc(v) + '"' +
-            (f.size ? ' size="' + f.size + '"' : '') + (f.step ? ' step="' + f.step + '"' : '') + req + '>';
+            (f.size ? ' size="' + f.size + '"' : '') + (f.step ? ' step="' + f.step + '"' : '') +
+            (f.autocomplete ? ' autocomplete="' + UI.esc(f.autocomplete) + '"' : '') + req + '>';
       }
 
       return '<div class="field' + (f.wide ? ' wide' : '') + '">' +

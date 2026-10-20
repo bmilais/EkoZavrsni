@@ -40,13 +40,16 @@ final class ProfesorService
       'ime'     => $data['ime'],
       'prezime' => $data['prezime'],
       'email'   => $data['email'] !== '' ? $data['email'] : null,
-      'lozinka' => $data['lozinka'] !== '' ? $data['lozinka'] : null,
+      'lozinka' => $data['lozinka'] !== '' ? password_hash($data['lozinka'], PASSWORD_DEFAULT) : null,
       'ovlasti' => (int)$data['ovlasti'],
     ]);
     Db::commit();
     return Db::lastId('PROFESORI_ID_SEQ');
   }
 
+  /**
+   * Prazna $data['lozinka'] = zadrži postojeću lozinku (kolona se ne dira).
+   */
   public static function update(int $id, array $data): void
   {
     $stmt = Db::connect()->prepare(
@@ -54,7 +57,6 @@ final class ProfesorService
           SET IME     = :ime,
               PREZIME = :prezime,
               EMAIL   = :email,
-              LOZINKA = :lozinka,
               OVLASTI = :ovlasti
         WHERE ID = :id AND DELETED = 0'
     );
@@ -62,10 +64,24 @@ final class ProfesorService
       'ime'     => $data['ime'],
       'prezime' => $data['prezime'],
       'email'   => $data['email'] !== '' ? $data['email'] : null,
-      'lozinka' => $data['lozinka'] !== '' ? $data['lozinka'] : null,
       'ovlasti' => (int)$data['ovlasti'],
       'id'      => $id,
     ]);
+    Db::commit();
+
+    if ($data['lozinka'] !== '') {
+      self::postaviLozinku($id, $data['lozinka']);
+    }
+  }
+
+  /**
+   * Sprema bcrypt hash lozinke (60 znakova).
+   * Preduvjet: ALTER TABLE PROFESORI MODIFY (LOZINKA VARCHAR2(255));
+   */
+  public static function postaviLozinku(int $id, string $lozinka): void
+  {
+    $stmt = Db::connect()->prepare('UPDATE PROFESORI SET LOZINKA = :lozinka WHERE ID = :id');
+    $stmt->execute(['lozinka' => password_hash($lozinka, PASSWORD_DEFAULT), 'id' => $id]);
     Db::commit();
   }
 

@@ -104,6 +104,14 @@ final class UvozController extends BaseController
           continue;
         }
 
+        // Limit MAX_TEMA_PO_PREDMETU. Svaka tema se commita odmah, pa brojanje
+        // vidi i teme uvezene u ranijim redovima iste datoteke.
+        $limitGreska = TemaService::provjeriLimitTema((int)$predmet['ID'], $ciklusId);
+        if ($limitGreska !== null) {
+          $greske[] = "Red {$line}: {$limitGreska} — '{$naziv}' preskočeno";
+          continue;
+        }
+
         // Tema uvijek ide u ciklus čiju stranicu uvoza admin trenutno koristi
         // (ciklus_id iz forme) - nema više per-red override preko stupca "Ciklus",
         // jer je to ranije moglo tihо prebaciti temu u pogrešan (stari) ciklus

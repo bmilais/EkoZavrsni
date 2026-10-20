@@ -58,7 +58,7 @@ final class UcenikPanelController extends BaseController
       return;
     }
 
-    $greska = OdabirService::ponisti((int)$u['id'], $odabirId, $razlog);
+    $greska = OdabirService::ponisti((int)$u['id'], (int)$u['idciklus'], $odabirId, $razlog);
 
     if ($greska !== null) {
       $this->fail($res, $greska);

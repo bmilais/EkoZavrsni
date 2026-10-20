@@ -133,27 +133,68 @@ final class OdabirService
       return 'Tema nije u aktivnom ciklusu.';
     }
 
+    // Brojanje i upis idu u jednu transakciju sa zaključanim retcima.
+    // Bez beginTransaction() bi autocommit odmah otpustio FOR UPDATE.
+    $db->beginTransaction();
+    try {
+      $greska = self::odaberiZakljucano($db, $ucenikId, $tema, $ciklus);
+      if ($greska === null) {
+        $db->commit();
+      } else {
+        $db->rollBack();
+      }
+      return $greska;
+    } catch (\Throwable $e) {
+      $db->rollBack();
+      // ORA-00001 = jedinstveni indeks u bazi (korak 2) uhvatio je duplikat
+      if (str_contains($e->getMessage(), 'ORA-00001')) {
+        return 'Već imate aktivno odabranu temu.';
+      }
+      throw $e;
+    }
+  }
+
+  /**
+   * Izvršava se unutar transakcije iz odaberi(). Ovdje se NE smije zvati
+   * Db::commit() - commit/rollback radi samo odaberi().
+   * Redoslijed zaključavanja je uvijek isti (učenik -> predmet -> mentor),
+   * da dva zahtjeva ne čekaju jedan drugoga zauvijek (deadlock).
+   */
+  private static function odaberiZakljucano(\PDO $db, int $ucenikId, array $tema, array $ciklus): ?string
+  {
+    $ciklusId = (int)$ciklus['ID'];
+
+    $lock = $db->prepare('SELECT ID FROM UCENICI WHERE ID = :id FOR UPDATE');
+    $lock->execute(['id' => $ucenikId]);
+    $lock->fetchColumn();
+
+    $lock = $db->prepare('SELECT "LIMIT" FROM PREDMETI WHERE ID = :id FOR UPDATE');
+    $lock->execute(['id' => $tema['IDPREDMETA']]);
+    $limit = $lock->fetchColumn();
+
+    $lock = $db->prepare('SELECT ID FROM PROFESORI WHERE ID = :id FOR UPDATE');
+    $lock->execute(['id' => $tema['IDPROFESORA']]);
+    $lock->fetchColumn();
+
+    // Tek sad brojimo - ako smo čekali na drugi zahtjev, vidimo i njegov upis.
     $stmt = $db->prepare(
       "SELECT COUNT(*) AS C FROM ODABIRI o
          JOIN TEME t5 ON t5.ID = o.IDTEME AND t5.DELETED = 0
         WHERE o.IDUCENIKA = :ucenik AND o.STATUS = 'aktivan' AND o.DELETED = 0
           AND t5.IDCIKLUSA = :ciklus"
     );
-    $stmt->execute(['ucenik' => $ucenikId, 'ciklus' => (int)$ciklus['ID']]);
+    $stmt->execute(['ucenik' => $ucenikId, 'ciklus' => $ciklusId]);
     if ((int)$stmt->fetchColumn() > 0) {
       return 'Već imate aktivno odabranu temu.';
     }
 
-    $predmet = $db->prepare('SELECT "LIMIT" FROM PREDMETI WHERE ID = :id');
-    $predmet->execute(['id' => $tema['IDPREDMETA']]);
-    $limit = $predmet->fetchColumn();
     if ($limit !== null && $limit !== false && (int)$limit > 0) {
       $stmt = $db->prepare(
         "SELECT COUNT(*) FROM ODABIRI o JOIN TEME t2 ON t2.ID = o.IDTEME
           WHERE t2.IDPREDMETA = :pid AND o.STATUS = 'aktivan' AND o.DELETED = 0
             AND t2.IDCIKLUSA = :ciklus"
       );
-      $stmt->execute(['pid' => $tema['IDPREDMETA'], 'ciklus' => (int)$ciklus['ID']]);
+      $stmt->execute(['pid' => $tema['IDPREDMETA'], 'ciklus' => $ciklusId]);
       if ((int)$stmt->fetchColumn() >= (int)$limit) {
         return 'Predmet je popunjen (limit dosegnut).';
       }
@@ -165,7 +206,7 @@ final class OdabirService
           WHERE t3.IDPROFESORA = :prof AND o.STATUS = 'aktivan' AND o.DELETED = 0
             AND t3.IDCIKLUSA = :ciklus"
       );
-      $stmt->execute(['prof' => $tema['IDPROFESORA'], 'ciklus' => (int)$ciklus['ID']]);
+      $stmt->execute(['prof' => $tema['IDPROFESORA'], 'ciklus' => $ciklusId]);
       if ((int)$stmt->fetchColumn() >= (int)$ciklus['MAX_UCENIKA_PO_MENTORU']) {
         return 'Mentor je popunjen (maksimalan broj učenika).';
       }
@@ -177,7 +218,7 @@ final class OdabirService
       "SELECT ID, STATUS FROM ODABIRI
         WHERE IDTEME = :tema AND IDUCENIKA = :ucenik AND DELETED = 0"
     );
-    $postoji->execute(['tema' => $temaId, 'ucenik' => $ucenikId]);
+    $postoji->execute(['tema' => $tema['ID'], 'ucenik' => $ucenikId]);
     $red = $postoji->fetch();
 
     if ($red && $red['STATUS'] === 'aktivan') {
@@ -196,7 +237,6 @@ final class OdabirService
           WHERE ID = :id"
       );
       $upd->execute(['id' => $red['ID']]);
-      Db::commit();
       return null;
     }
 
@@ -204,16 +244,12 @@ final class OdabirService
       "INSERT INTO ODABIRI (IDTEME, IDUCENIKA, DELETED, STATUS)
        VALUES (:tema, :ucenik, 0, 'aktivan')"
     );
-    $stmt->execute(['tema' => $temaId, 'ucenik' => $ucenikId]);
-    Db::commit();
-
+    $stmt->execute(['tema' => $tema['ID'], 'ucenik' => $ucenikId]);
     return null;
   }
 
-  /**
-   * Učenik otkazuje svoj aktivni odabir. Razlog je obavezan.
-   */
-  public static function ponisti(int $ucenikId, int $odabirId, string $razlog): ?string
+
+  public static function ponisti(int $ucenikId, int $ucenikCiklusId, int $odabirId, string $razlog): ?string
   {
     if ($odabirId <= 0) {
       return 'Nepoznat odabir.';
@@ -223,15 +259,32 @@ final class OdabirService
       return 'Razlog poništenja je obavezan.';
     }
 
+    $ciklus = self::openCiklus();
+    if (!$ciklus || (int)$ciklus['ID'] !== $ucenikCiklusId) {
+      return 'Ciklus je zaključan - odabir se više ne može poništiti. Obratite se administratoru.';
+    }
+
     $stmt = Db::connect()->prepare(
       "UPDATE ODABIRI
           SET STATUS = 'ponisten',
               OBRAZLOZENJE = :razlog,
               PONISTIO_ID = NULL,
               DATUM_PONISTENJA = SYSTIMESTAMP
-        WHERE ID = :id AND IDUCENIKA = :ucenik AND STATUS = 'aktivan' AND DELETED = 0"
+        WHERE ID = :id AND IDUCENIKA = :ucenik AND STATUS = 'aktivan' AND DELETED = 0
+          AND EXISTS (SELECT 1
+                        FROM TEME t
+                        JOIN CIKLUSI c ON c.ID = t.IDCIKLUSA
+                       WHERE t.ID = ODABIRI.IDTEME
+                         AND c.ID = :ciklus
+                         AND c.STATUS = 'otvoreno'
+                         AND c.DELETED = 0)"
     );
-    $stmt->execute(['razlog' => $razlog, 'id' => $odabirId, 'ucenik' => $ucenikId]);
+    $stmt->execute([
+      'razlog' => $razlog,
+      'id'     => $odabirId,
+      'ucenik' => $ucenikId,
+      'ciklus' => $ucenikCiklusId,
+    ]);
     Db::commit();
 
     if ($stmt->rowCount() === 0) {

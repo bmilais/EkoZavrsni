@@ -119,8 +119,7 @@ const Pages = {
     })();
   },
 
-  async ucenikOdaberi(id, nazivEnc) {
-    const naziv = decodeURIComponent(nazivEnc);
+  async ucenikOdaberi(id, naziv) {
     UI.confirm({
       title: 'Odabir teme',
       body: 'Želite li odabrati temu <strong>' + UI.esc(naziv) + '</strong>?',
@@ -133,8 +132,7 @@ const Pages = {
     });
   },
 
-  async ucenikPonisti(id, nazivEnc) {
-    const naziv = decodeURIComponent(nazivEnc);
+  async ucenikPonisti(id, naziv) {
     UcenikPanelView.ponistiModal(naziv, async (razlog) => {
       await OdabirModel.ponistiMoj(id, razlog);
       UI.toast('Odabir otkazan.', 'success');
@@ -282,28 +280,50 @@ const Pages = {
     try {
       await UcenikModel.posaljiLink(id);
       UI.toast('Magic link poslan na email.', 'success');
+      window.Router.run(); // osvježi stupac "Link poslan"
     } catch (e) { UI.toast(e.message, 'error'); }
   },
 
   posaljiLinkSvima(ciklusId) {
     UI.confirm({
-      title: 'Pošalji magic link svima',
-      body: 'Poslati magic link svim učenicima u ovom ciklusu putem emaila? Ovo može potrajati nekoliko trenutaka za veći broj učenika.',
-      confirmText: 'Pošalji svima',
+      title: 'Pošalji magic link',
+      body:
+        '<p>Poslati magic link učenicima ovog ciklusa koji ga još nisu dobili?</p>' +
+        '<label><input type="checkbox" id="ponovno-svima"> Pošalji ponovno <strong>svima</strong> u ciklusu</label>' +
+        '<p class="muted">Za veći broj učenika ovo može potrajati.</p>',
+      confirmText: 'Pošalji',
       danger: false,
       onConfirm: async () => {
-        const res = await UcenikModel.posaljiLinkSvima(ciklusId);
-        const greske = res.greske || [];
-        if (greske.length === 0) {
-          UI.toast('Magic link poslan svim učenicima (' + res.poslano + '/' + res.ukupno + ').', 'success');
-        } else {
-          UI.toast('Poslano ' + res.poslano + '/' + res.ukupno + '. ' + greske.length + ' greška(e) — vidi popis.', 'error', 6000);
-          UI.modal({
-            title: 'Greške pri slanju magic linkova',
-            body: '<ul class="sm">' + greske.map(g => '<li>' + UI.esc(g) + '</li>').join('') + '</ul>',
-            foot: '<button class="btn secondary" onclick="UI.closeModal()">Zatvori</button>',
-          });
+        const ponovnoSvima = document.getElementById('ponovno-svima').checked;
+        let res;
+        try {
+          res = await UcenikModel.posaljiLinkSvima(ciklusId, ponovnoSvima);
+        } catch (e) {
+          // Npr. prekid zbog vremenskog ograničenja - dio mailova je možda poslan.
+          window.Router.run();
+          throw new Error(e.message + ' Dio mailova je možda poslan - provjerite stupac "Link poslan" ' +
+            'i pokrenite slanje ponovno (poslat će se samo onima koji link još nisu dobili).');
         }
+
+        const greske = res.greske || [];
+        window.Router.run(); // osvježi stupac "Link poslan"
+
+        if (res.ukupno === 0) {
+          UI.toast('Svi učenici ovog ciklusa već su dobili link.', 'info');
+          return;
+        }
+        if (greske.length === 0) {
+          UI.toast('Magic link poslan (' + res.poslano + '/' + res.ukupno + ').', 'success');
+          return;
+        }
+
+        UI.toast('Poslano ' + res.poslano + '/' + res.ukupno + '. ' + greske.length + ' greška(e) — vidi popis.', 'error', 8000);
+        UI.modal({
+          title: 'Greške pri slanju magic linkova',
+          body: '<ul class="sm">' + greske.map(g => '<li>' + UI.esc(g) + '</li>').join('') + '</ul>',
+          foot: '<button class="btn secondary" onclick="UI.closeModal()">Zatvori</button>',
+        });
+        return false; // UI.confirm ne smije zatvoriti modal s popisom grešaka
       },
     });
   },
@@ -381,9 +401,7 @@ const Pages = {
     } catch (e) { View.error(e); }
   },
 
-  odabiriPonisti(id, ucenikEnc, temaEnc) {
-    const ucenik = decodeURIComponent(ucenikEnc);
-    const tema = decodeURIComponent(temaEnc);
+  odabiriPonisti(id, ucenik, tema) {
     OdabirView.ponistiModal(ucenik, tema, async (obrazlozenje) => {
       await OdabirModel.ponisti(id, obrazlozenje);
       UI.toast('Odabir poništen.', 'success');

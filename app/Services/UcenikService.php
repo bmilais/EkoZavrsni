@@ -11,10 +11,11 @@ final class UcenikService
    */
   public static function list(?int $ciklusId = null): array
   {
-    $sql = 'SELECT u.ID, u.IME, u.PREZIME, u.EMAIL, u.SMJER, u.IDCIKLUS, r.NAZIV AS RAZRED_NAZIV
+    $sql = "SELECT u.ID, u.IME, u.PREZIME, u.EMAIL, u.SMJER, u.IDCIKLUS, r.NAZIV AS RAZRED_NAZIV,
+                   TO_CHAR(u.LINK_POSLAN, 'YYYY-MM-DD HH24:MI') AS LINK_POSLAN
               FROM UCENICI u
               JOIN RAZREDI r ON r.ID = u.IDRAZRED
-             WHERE u.DELETED = 0';
+             WHERE u.DELETED = 0";
     $params = [];
     if ($ciklusId !== null) {
       $sql .= ' AND u.IDCIKLUS = :ciklus';
@@ -106,5 +107,35 @@ final class UcenikService
   public static function smjerLabel(int $smjer): string
   {
     return $smjer === 1 ? 'Ekonomist' : 'Trgovac';
+  }
+
+  /**
+   * Svi podaci za skupno slanje linka, jednim upitom (umjesto get() po učeniku).
+   * $samoNeposlani = true -> samo učenici kojima link još nije uspješno poslan.
+   */
+  public static function zaSlanjeLinka(int $ciklusId, bool $samoNeposlani): array
+  {
+    $sql = 'SELECT ID, IME, PREZIME, EMAIL, HASH
+              FROM UCENICI
+             WHERE IDCIKLUS = :ciklus AND DELETED = 0';
+    if ($samoNeposlani) {
+      $sql .= ' AND LINK_POSLAN IS NULL';
+    }
+    $sql .= ' ORDER BY PREZIME, IME';
+
+    $stmt = Db::connect()->prepare($sql);
+    $stmt->execute(['ciklus' => $ciklusId]);
+    return $stmt->fetchAll();
+  }
+
+  /**
+   * Bilježi da je link učeniku uspješno poslan. Commit odmah nakon svakog
+   * maila, pa i prekinuto skupno slanje ostavlja točan zapis kome je poslano.
+   */
+  public static function oznaciLinkPoslan(int $id): void
+  {
+    $stmt = Db::connect()->prepare('UPDATE UCENICI SET LINK_POSLAN = SYSTIMESTAMP WHERE ID = :id');
+    $stmt->execute(['id' => $id]);
+    Db::commit();
   }
 }

@@ -46,6 +46,33 @@ final class TemaService
     return $row ? array_change_key_case($row, CASE_LOWER) : null;
   }
 
+  /**
+   * Provjera CIKLUSI.MAX_TEMA_PO_PREDMETU: koliko tema smije imati jedan
+   * predmet u jednom ciklusu. Vraća null ako je u redu, inače poruku greške.
+   * $iskljuciTemaId - kod uređivanja se tema koja se uređuje ne broji.
+   */
+  public static function provjeriLimitTema(int $predmetId, int $ciklusId, int $iskljuciTemaId = 0): ?string
+  {
+    $db = Db::connect();
+
+    $stmt = $db->prepare('SELECT MAX_TEMA_PO_PREDMETU FROM CIKLUSI WHERE ID = :id AND DELETED = 0');
+    $stmt->execute(['id' => $ciklusId]);
+    $max = $stmt->fetchColumn();
+    if ($max === false || $max === null || (int)$max <= 0) {
+      return null; // limit nije postavljen
+    }
+
+    $stmt = $db->prepare(
+      'SELECT COUNT(*) FROM TEME
+        WHERE IDPREDMETA = :predmet AND IDCIKLUSA = :ciklus AND DELETED = 0 AND ID <> :iskljuci'
+    );
+    $stmt->execute(['predmet' => $predmetId, 'ciklus' => $ciklusId, 'iskljuci' => $iskljuciTemaId]);
+    if ((int)$stmt->fetchColumn() >= (int)$max) {
+      return 'Predmet već ima maksimalan broj tema u ovom ciklusu (' . (int)$max . ').';
+    }
+    return null;
+  }
+
   public static function create(array $data): int
   {
     $db = Db::connect();

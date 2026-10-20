@@ -23,6 +23,9 @@ final class UcenikController extends BaseController
         return;
       }
       $ucenik['SMJER_LABEL'] = UcenikService::smjerLabel((int)$ucenik['smjer']);
+      // Lozinka i magic-link token (hash) nikad ne idu frontendu. Uređivanje
+      // i dalje radi: spremi() kod prazne lozinke uzima postojeću iz baze.
+      unset($ucenik['lozinka'], $ucenik['hash']);
       $this->ok($res, ['data' => $ucenik]);
       return;
     }
@@ -107,6 +110,11 @@ final class UcenikController extends BaseController
       return;
     }
 
+    if ((string)($ucenik['hash'] ?? '') === '') {
+      $this->fail($res, 'Učenik nema token za prijavu.');
+      return;
+    }
+
     $greska = MailService::posaljiLinkUceniku(
       $ucenik['email'],
       $ucenik['ime'],
@@ -119,12 +127,16 @@ final class UcenikController extends BaseController
       return;
     }
 
+    UcenikService::oznaciLinkPoslan($id);
     $this->ok($res);
   }
 
   /**
-   * Šalje magic-link email svim učenicima zadanog ciklusa odjednom
-   * (umjesto da admin klika "Pošalji link" za svakog posebno).
+   * Šalje magic-link email učenicima zadanog ciklusa odjednom.
+   *
+   * Zadano samo onima kojima link još nije uspješno poslan (LINK_POSLAN IS NULL),
+   * pa ponovni klik nakon prekida nastavlja gdje je stalo, umjesto da šalje
+   * svima iznova. {"ponovno_svima": true} šalje svima u ciklusu.
    */
   public function posaljiLinkSvima(Request $req, Response $res): void
   {
@@ -135,34 +147,48 @@ final class UcenikController extends BaseController
       $this->fail($res, 'Ciklus je obavezan.');
       return;
     }
+    $ponovnoSvima = filter_var($req->input('ponovno_svima', false), FILTER_VALIDATE_BOOL);
 
-    $ucenici = UcenikService::list($ciklusId);
+    // Jedan upit za sve (umjesto UcenikService::get() po učeniku).
+    $ucenici = UcenikService::zaSlanjeLinka($ciklusId, !$ponovnoSvima);
+
+    // Slanje se nastavlja i ako admin zatvori karticu, a vremensko ograničenje
+    // obnavlja se po učeniku (umjesto 120 s za cijelu petlju).
+    ignore_user_abort(true);
 
     $poslano = 0;
     $greske  = [];
 
-    foreach ($ucenici as $u) {
-      // list() ne vraća HASH (ne šalje se u JSON prema frontendu), pa se
-      // za svakog učenika posebno dohvaća puni zapis potreban za slanje.
-      $puni = UcenikService::get((int)$u['ID']);
-      if (!$puni) {
-        $greske[] = trim($u['PREZIME'] . ' ' . $u['IME']) . ': učenik više ne postoji.';
-        continue;
+    try {
+      $mail = MailService::otvoriVezu();
+    } catch (\Throwable $e) {
+      error_log('Mail greška: ' . $e->getMessage());
+      $this->fail($res, 'Ne mogu pripremiti slanje maila: ' . $e->getMessage(), 500);
+      return;
+    }
+
+    try {
+      foreach ($ucenici as $u) {
+        set_time_limit(60);
+
+        $ime  = trim($u['PREZIME'] . ' ' . $u['IME']) . ' (' . $u['EMAIL'] . ')';
+        $hash = (string)($u['HASH'] ?? '');
+        if ($hash === '') {
+          $greske[] = $ime . ': nema token za prijavu.';
+          continue;
+        }
+
+        $greska = MailService::posalji($mail, (string)$u['EMAIL'], (string)$u['IME'], (string)$u['PREZIME'], $hash);
+        if ($greska !== null) {
+          $greske[] = $ime . ': ' . $greska;
+          continue;
+        }
+
+        UcenikService::oznaciLinkPoslan((int)$u['ID']);
+        $poslano++;
       }
-
-      $greska = MailService::posaljiLinkUceniku(
-        $puni['email'],
-        $puni['ime'],
-        $puni['prezime'],
-        $puni['hash']
-      );
-
-      if ($greska !== null) {
-        $greske[] = trim($puni['prezime'] . ' ' . $puni['ime']) . ' (' . $puni['email'] . '): ' . $greska;
-        continue;
-      }
-
-      $poslano++;
+    } finally {
+      MailService::zatvoriVezu($mail);
     }
 
     $this->ok($res, [

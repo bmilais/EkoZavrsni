@@ -29,7 +29,8 @@ const ProfesorView = {
         { name: 'ime', label: 'Ime', type: 'text', required: true, size: 30 },
         { name: 'prezime', label: 'Prezime', type: 'text', required: true, size: 30 },
         { name: 'email', label: 'Email', type: 'email', size: 40 },
-        { name: 'lozinka', label: 'Lozinka', type: 'text', small: id > 0 ? 'ostavi prazno da ostane ista' : '', size: 20 },
+        // new-password: preglednik ne smije ovdje upisati adminovu spremljenu lozinku
+        { name: 'lozinka', label: 'Lozinka', type: 'password', autocomplete: 'new-password', small: id > 0 ? 'ostavi prazno da ostane ista' : '', size: 20 },
         { name: 'ovlasti', label: 'Uloga', type: 'select', required: true, placeholder: false },
       ],
     });

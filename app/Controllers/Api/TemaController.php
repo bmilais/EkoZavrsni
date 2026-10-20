@@ -80,6 +80,21 @@ final class TemaController extends BaseController
       return;
     }
 
+    // Limit MAX_TEMA_PO_PREDMETU: provjerava se za novu temu i kad se postojeća
+    // premješta u drugi predmet/ciklus. Obično uređivanje (npr. naziva) ne smije
+    // pasti samo zato što je limit naknadno smanjen.
+    $postojeca = $id > 0 ? TemaService::get($id) : null;
+    $premjestena = !$postojeca
+      || (int)$postojeca['idpredmeta'] !== (int)$data['idpredmeta']
+      || (int)$postojeca['idciklusa'] !== (int)$data['idciklusa'];
+    if ($premjestena) {
+      $limitGreska = TemaService::provjeriLimitTema((int)$data['idpredmeta'], (int)$data['idciklusa'], $id);
+      if ($limitGreska !== null) {
+        $this->fail($res, $limitGreska);
+        return;
+      }
+    }
+
     if ($id > 0) {
       TemaService::update($id, $data);
     } else {

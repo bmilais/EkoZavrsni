@@ -12,9 +12,9 @@ final class Auth
 
   /**
    * Prijava admina/nastavnika email+lozinkom (tablica PROFESORI).
-   * NAPOMENA: lozinke su trenutno plaintext (dogovoreno za lokalni razvoj).
-   * Prije produkcije treba prijeci na password_hash()/password_verify()
-   * i prosiriti kolonu LOZINKA (VARCHAR2(20) je premalo za bcrypt hash).
+   * Lozinke se spremaju kao password_hash(). Stare plaintext lozinke još
+   * prolaze provjeru i automatski se prebacuju na hash pri prvoj prijavi.
+   * Preduvjet: ALTER TABLE PROFESORI MODIFY (LOZINKA VARCHAR2(255));
    */
   public static function attempt(string $email, string $password): bool
   {
@@ -29,10 +29,22 @@ final class Auth
     if (!$row || $row['LOZINKA'] === null) {
       return false;
     }
-    if (!hash_equals((string)$row['LOZINKA'], $password)) {
+
+    $spremljena = (string)$row['LOZINKA'];
+    if (password_get_info($spremljena)['algoName'] === 'unknown') {
+      // Stara plaintext lozinka: provjeri pa odmah zamijeni hashom.
+      if (!hash_equals($spremljena, $password)) {
+        return false;
+      }
+      self::prebaciNaHash((int)$row['ID'], $password);
+    } elseif (!password_verify($password, $spremljena)) {
       return false;
+    } elseif (password_needs_rehash($spremljena, PASSWORD_DEFAULT)) {
+      self::prebaciNaHash((int)$row['ID'], $password);
     }
 
+    // Novi ID sesije nakon prijave - sprječava session fixation.
+    Session::regenerate();
     Session::set(self::SESSION_KEY, [
       'id'      => (int)$row['ID'],
       'ime'     => $row['IME'],
@@ -42,6 +54,20 @@ final class Auth
     ]);
 
     return true;
+  }
+
+  /**
+   * Prijava ne smije pasti ako hash ne stane u kolonu (ALTER na
+   * VARCHAR2(255) još nije pokrenut) - greška se samo zapiše u log,
+   * a lozinka ostaje plaintext do sljedeće prijave.
+   */
+  private static function prebaciNaHash(int $id, string $password): void
+  {
+    try {
+      ProfesorService::postaviLozinku($id, $password);
+    } catch (\Throwable $e) {
+      error_log('Auth: lozinka nije prebačena na hash (pokrenuti ALTER?): ' . $e->getMessage());
+    }
   }
 
   /**
@@ -61,6 +87,8 @@ final class Auth
       return false;
     }
 
+    // Novi ID sesije nakon prijave - sprječava session fixation.
+    Session::regenerate();
     Session::set(self::SESSION_KEY, [
       'id'        => (int)$row['ID'],
       'ime'       => $row['IME'],
@@ -92,6 +120,7 @@ final class Auth
   public static function logout(): void
   {
     Session::remove(self::SESSION_KEY);
+    Session::regenerate();
   }
 
   /**

@@ -47,6 +47,16 @@ final class Session
     unset($_SESSION[$key]);
   }
 
+  /**
+   * Novi ID sesije, stara sesija se briše (zove se nakon prijave i odjave).
+   * Tko je unaprijed znao/podmetnuo stari ID, s njim više ne dobiva pristup.
+   */
+  public static function regenerate(): void
+  {
+    self::start();
+    session_regenerate_id(true);
+  }
+
   public static function destroy(): void
   {
     self::start();

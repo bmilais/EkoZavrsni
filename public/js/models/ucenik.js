@@ -5,6 +5,6 @@ const UcenikModel = {
   spremi(data) { return API.post('ucenici/spremi', data); },
   obrisi(id) { return API.post('ucenici/obrisi', { id }); },
   posaljiLink(id) { return API.post('ucenici/posalji-link', { id }); },
-  posaljiLinkSvima(ciklusId) { return API.post('ucenici/posalji-link-svima', { ciklus_id: ciklusId }); },
+  posaljiLinkSvima(ciklusId, ponovnoSvima) { return API.post('ucenici/posalji-link-svima', { ciklus_id: ciklusId, ponovno_svima: !!ponovnoSvima }); },
   uvoz(formData) { return API.upload('ucenici/uvoz', formData); },
 };

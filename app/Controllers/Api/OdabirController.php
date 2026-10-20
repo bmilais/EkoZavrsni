@@ -78,6 +78,12 @@ final class OdabirController extends BaseController
     ]);
     Db::commit();
 
+    // 0 promijenjenih redaka = odabir ne postoji ili je već poništen.
+    if ($stmt->rowCount() === 0) {
+      $this->fail($res, 'Aktivni odabir nije pronađen (možda je već poništen).', 404);
+      return;
+    }
+
     $this->ok($res);
   }
 }
