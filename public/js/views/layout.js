@@ -43,7 +43,7 @@ const View = {
     const inicijali = (u.ime ? u.ime[0] : '') + (u.prezime ? u.prezime[0] : '');
 
     return '<div class="topbar">' +
-      '<a href="#/" class="brand">🍃 EkoZavrsni<small>Sustav odabira završnih radova</small></a>' +
+      '<a href="#/" class="brand">Admin Panel</a>' +
       links +
       '<span class="user"><span class="avatar">' + UI.esc(inicijali.toUpperCase()) + '</span>' +
       UI.esc(u.ime + ' ' + u.prezime) +

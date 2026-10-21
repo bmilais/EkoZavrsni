@@ -5,10 +5,10 @@ const LoginView = {
       <div class="login-wrap">
         <div class="auth-card">
           <div style="text-align:center;font-size:2rem;margin-bottom:6px">🍃</div>
-          <h1>EkoZavrsni</h1>
-          <div class="auth-sub">Prijava u sustav odabira završnih radova</div>
+          <h1>Sustav za biranje završnog rada</h1>
+          <div class="auth-sub">Prijava u sustav</div>
           <form class="form" id="login-form">
-            <div class="field"><label>Email</label><input type="email" name="email" required placeholder="ime.prezime@vub.hr"></div>
+            <div class="field"><label>Email</label><input type="email" name="email" required placeholder="ime.prezime@gmail.com"></div>
             <div class="field"><label>Lozinka</label><input type="password" name="lozinka" required></div>
             <button type="submit" class="btn" style="width:100%">Prijavi se</button>
           </form>
