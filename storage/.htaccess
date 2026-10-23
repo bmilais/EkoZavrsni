@@ -1,0 +1,4 @@
+# Sadržaj mape storage/ (uploadani PDF-ovi s uputama, logovi) ne smije biti
+# dostupan izravno preko weba. PDF se preuzima samo preko /api/upute/preuzmi,
+# koji provjerava da je prijavljen admin.
+Require all denied

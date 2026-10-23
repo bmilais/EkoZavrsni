@@ -1,3 +1,7 @@
+# Dopusti pristup ovoj mapi. Korijenski .htaccess projekta zabranjuje sve
+# ostalo, a ova linija za public/ tu zabranu ponistava.
+Require all granted
+
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /EkoZavrsni/public/

@@ -26,6 +26,7 @@ const UcenikView = {
       rowActions: row =>
         '<a class="btn link" href="#/admin/ucenici/uredi?id=' + row.ID + '&ciklus_id=' + cid + '">Uredi</a>' +
         '<button class="btn link" onclick="Pages.posaljiLink(' + row.ID + ')">Pošalji link</button>' +
+        '<button class="btn link" onclick="Pages.uputePosaljiUceniku(' + Number(row.ID) + ', this)">Pošalji upute</button>' +
         '<button class="btn link danger" onclick="Crud.deleteItem({url:\'ucenici/obrisi\', id:' + row.ID + ', confirmText:\'Obrisati učenika?\', onClick:()=>window.Router.run()})">Obriši</button>',
     });
   },

@@ -50,6 +50,7 @@ const AdminView = {
       ['🗂️', cid ? '/admin/teme?ciklus_id=' + cid : null, 'Teme', 'Završne teme i mentori odabranog ciklusa'],
       ['✅', cid ? '/admin/odabiri?ciklus_id=' + cid : null, 'Odabiri', 'Pregled i poništavanje odabira odabranog ciklusa'],
       ['📊', cid ? '/admin/stanje?ciklus_id=' + cid : null, 'Stanje', 'Zauzetost tema i mentora odabranog ciklusa'],
+      ['📄', cid ? '/admin/upute?ciklus_id=' + cid : null, 'Upute', 'PDF upute za učenike odabranog ciklusa'],
     ];
 
     const karticaHtml = ([ico, href, title, desc]) => {

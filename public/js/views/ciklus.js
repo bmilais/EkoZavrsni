@@ -42,7 +42,6 @@ const CiklusView = {
         { name: 'skolska_godina', label: 'Školska godina', type: 'text', required: true, small: 'npr. 2025/2026' },
         { name: 'max_ucenika_po_mentoru', label: 'Max učenika po mentoru', type: 'number', small: 'opcionalno' },
         { name: 'max_tema_po_predmetu', label: 'Max tema po predmetu', type: 'number', small: 'opcionalno' },
-        { name: 'upute_pdf_url', label: 'URL PDF uputa', type: 'url', small: 'opcionalno', size: 80 },
       ],
     });
   },

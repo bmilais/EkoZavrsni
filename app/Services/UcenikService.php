@@ -129,6 +129,33 @@ final class UcenikService
   }
 
   /**
+   * Učenici za slanje PDF uputa, jednim upitom.
+   * $samoNeposlani = true -> samo oni kojima upute još nisu uspješno poslane.
+   */
+  public static function zaSlanjeUputa(int $ciklusId, bool $samoNeposlani): array
+  {
+    $sql = 'SELECT ID, IME, PREZIME, EMAIL
+              FROM UCENICI
+             WHERE IDCIKLUS = :ciklus AND DELETED = 0';
+    if ($samoNeposlani) {
+      $sql .= ' AND UPUTE_POSLANE IS NULL';
+    }
+    $sql .= ' ORDER BY PREZIME, IME';
+
+    $stmt = Db::connect()->prepare($sql);
+    $stmt->execute(['ciklus' => $ciklusId]);
+    return $stmt->fetchAll();
+  }
+
+  /** Bilježi da su upute učeniku uspješno poslane (commit odmah, kao kod linka). */
+  public static function oznaciUputePoslane(int $id): void
+  {
+    $stmt = Db::connect()->prepare('UPDATE UCENICI SET UPUTE_POSLANE = SYSTIMESTAMP WHERE ID = :id');
+    $stmt->execute(['id' => $id]);
+    Db::commit();
+  }
+
+  /**
    * Bilježi da je link učeniku uspješno poslan. Commit odmah nakon svakog
    * maila, pa i prekinuto skupno slanje ostavlja točan zapis kome je poslano.
    */

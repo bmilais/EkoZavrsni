@@ -60,6 +60,7 @@ const Router = {
     ['admin/teme/uvoz', ctx => Pages.uvoz(ctx), 'admin'],
     ['admin/odabiri', ctx => Pages.odabiriList(ctx), 'admin'],
     ['admin/stanje', ctx => Pages.stanje(ctx), 'admin'],
+    ['admin/upute', ctx => Pages.upute(ctx), 'admin'],
     ['nastavnik', () => Pages.nastavnik(), 'nastavnik'],
     ['ucenik', () => Pages.ucenik(), 'ucenik'],
   ],

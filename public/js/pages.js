@@ -284,6 +284,7 @@ const Pages = {
     } catch (e) { UI.toast(e.message, 'error'); }
   },
 
+  // Korak 1: admin bira kome se šalje (samo onima bez linka ili svima).
   posaljiLinkSvima(ciklusId) {
     UI.confirm({
       title: 'Pošalji magic link',
@@ -291,10 +292,41 @@ const Pages = {
         '<p>Poslati magic link učenicima ovog ciklusa koji ga još nisu dobili?</p>' +
         '<label><input type="checkbox" id="ponovno-svima"> Pošalji ponovno <strong>svima</strong> u ciklusu</label>' +
         '<p class="muted">Za veći broj učenika ovo može potrajati.</p>',
-      confirmText: 'Pošalji',
+      confirmText: 'Dalje',
       danger: false,
       onConfirm: async () => {
         const ponovnoSvima = document.getElementById('ponovno-svima').checked;
+
+        // Koliko će učenika stvarno dobiti mail - prikazuje se u potvrdi.
+        const lista = (await UcenikModel.list(ciklusId)).data || [];
+        const broj = ponovnoSvima ? lista.length : lista.filter(u => !u.LINK_POSLAN).length;
+        if (broj === 0) {
+          UI.toast(ponovnoSvima ? 'U ovom ciklusu nema učenika.' : 'Svi učenici ovog ciklusa već su dobili link.', 'info');
+          return; // zatvori prozor, nema se što slati
+        }
+
+        this.posaljiLinkSvimaPotvrda(ciklusId, ponovnoSvima, broj);
+        return false; // prozor je zamijenjen potvrdom - ne zatvaraj ga
+      },
+    });
+  },
+
+  // Korak 2: "Jeste li sigurni?" s brojem učenika. Tek ovdje se mailovi šalju.
+  posaljiLinkSvimaPotvrda(ciklusId, ponovnoSvima, broj) {
+    // 1 učenik, 21 učenik ... ali 11 učenika; inače "učenika" (2 učenika, 5 učenika)
+    const oblik = (n) => (n % 10 === 1 && n % 100 !== 11) ? 'učenik' : 'učenika';
+
+    UI.confirm({
+      title: 'Jeste li sigurni?',
+      body:
+        '<p>Magic link na email dobit će <strong>' + broj + ' ' + oblik(broj) + '</strong>.</p>' +
+        (ponovnoSvima
+          ? '<p><strong>Uključeni su i učenici koji su link već dobili</strong> — dobit će ga ponovno.</p>'
+          : '') +
+        '<p class="muted">Poslani mailovi ne mogu se povući.</p>',
+      confirmText: 'Da, pošalji',
+      danger: true,
+      onConfirm: async () => {
         let res;
         try {
           res = await UcenikModel.posaljiLinkSvima(ciklusId, ponovnoSvima);
@@ -417,6 +449,108 @@ const Pages = {
       const res = await StanjeModel.get(ciklus.ID);
       StanjeView.render(res, ciklus);
     } catch (e) { View.error(e); }
+  },
+
+  // ---------- upute (PDF za učenike, uvijek u kontekstu ciklusa) ----------
+  async upute(ctx) {
+    const ciklus = await this.ucenikCiklusOrRedirect(ctx);
+    if (!ciklus) return;
+    let info;
+    try {
+      info = (await UputeModel.info(ciklus.ID)).data;
+    } catch (e) { View.error(e); return; }
+
+    UputeView.render(ciklus, info);
+    UputeView.attachUpload(info.MAX_VELICINA, async (fd) => {
+      await UputeModel.upload(fd);
+      UI.toast(info.POSTOJI ? 'PDF zamijenjen.' : 'PDF učitan.', 'success');
+      window.Router.run();
+    });
+  },
+
+  // Slanje uputa jednom učeniku (panel Upute i popis učenika), kao "Pošalji link".
+  async uputePosaljiUceniku(ucenikId, btn) {
+    const tekst = btn ? btn.textContent : '';
+    if (btn) { btn.disabled = true; btn.textContent = 'Šaljem...'; }
+    try {
+      await UputeModel.posaljiUceniku(ucenikId);
+      UI.toast('Upute poslane na email.', 'success');
+      window.Router.run(); // osvježi stupac "Upute poslane" na panelu
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = tekst; }
+      UI.toast(e.message, 'error', 8000);
+    }
+  },
+
+  // Korak 1: kome se šalje (samo onima koji upute nisu dobili ili svima).
+  uputePosalji(ciklusId) {
+    UI.confirm({
+      title: 'Pošalji upute',
+      body:
+        '<p>Poslati PDF upute učenicima ovog ciklusa koji ih još nisu dobili?</p>' +
+        '<label><input type="checkbox" id="upute-ponovno-svima"> Pošalji ponovno <strong>svima</strong> u ciklusu</label>' +
+        '<p class="muted">Za veći broj učenika ovo može potrajati.</p>',
+      confirmText: 'Dalje',
+      danger: false,
+      onConfirm: async () => {
+        const ponovnoSvima = document.getElementById('upute-ponovno-svima').checked;
+        const info = (await UputeModel.info(ciklusId)).data;
+        const broj = ponovnoSvima ? info.UKUPNO : info.UKUPNO - info.POSLANO;
+        if (broj === 0) {
+          UI.toast(ponovnoSvima ? 'U ovom ciklusu nema učenika.' : 'Svi učenici ovog ciklusa već su dobili upute.', 'info');
+          return;
+        }
+        this.uputePosaljiPotvrda(ciklusId, ponovnoSvima, broj, info.NAZIV);
+        return false; // prozor je zamijenjen potvrdom - ne zatvaraj ga
+      },
+    });
+  },
+
+  // Korak 2: "Jeste li sigurni?" s brojem učenika. Tek ovdje se mailovi šalju.
+  uputePosaljiPotvrda(ciklusId, ponovnoSvima, broj, nazivPdf) {
+    const oblik = (n) => (n % 10 === 1 && n % 100 !== 11) ? 'učenik' : 'učenika';
+
+    UI.confirm({
+      title: 'Jeste li sigurni?',
+      body:
+        '<p>PDF <strong>' + UI.esc(nazivPdf) + '</strong> kao privitak dobit će <strong>' + broj + ' ' + oblik(broj) + '</strong>.</p>' +
+        (ponovnoSvima
+          ? '<p><strong>Uključeni su i učenici koji su upute već dobili</strong> — dobit će ih ponovno.</p>'
+          : '') +
+        '<p class="muted">Poslani mailovi ne mogu se povući.</p>',
+      confirmText: 'Da, pošalji',
+      danger: true,
+      onConfirm: async () => {
+        let res;
+        try {
+          res = await UputeModel.posalji(ciklusId, ponovnoSvima);
+        } catch (e) {
+          window.Router.run();
+          throw new Error(e.message + ' Dio mailova je možda poslan - provjerite stupac "Upute poslane" ' +
+            'i pokrenite slanje ponovno (poslat će se samo onima koji upute još nisu dobili).');
+        }
+
+        const greske = res.greske || [];
+        window.Router.run(); // osvježi stanje slanja na panelu
+
+        if (res.ukupno === 0) {
+          UI.toast('Svi učenici ovog ciklusa već su dobili upute.', 'info');
+          return;
+        }
+        if (greske.length === 0) {
+          UI.toast('Upute poslane (' + res.poslano + '/' + res.ukupno + ').', 'success');
+          return;
+        }
+
+        UI.toast('Poslano ' + res.poslano + '/' + res.ukupno + '. ' + greske.length + ' greška(e) — vidi popis.', 'error', 8000);
+        UI.modal({
+          title: 'Greške pri slanju uputa',
+          body: '<ul class="sm">' + greske.map(g => '<li>' + UI.esc(g) + '</li>').join('') + '</ul>',
+          foot: '<button class="btn secondary" onclick="UI.closeModal()">Zatvori</button>',
+        });
+        return false; // UI.confirm ne smije zatvoriti modal s popisom grešaka
+      },
+    });
   },
 
   // ---------- uvoz (uvijek u kontekstu ciklusa) ----------

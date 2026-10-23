@@ -47,7 +47,6 @@ final class CiklusController extends BaseController
       'naziv'                  => (string)$req->input('naziv', ''),
       'max_ucenika_po_mentoru' => (string)$req->input('max_ucenika_po_mentoru', ''),
       'max_tema_po_predmetu'   => (string)$req->input('max_tema_po_predmetu', ''),
-      'upute_pdf_url'          => (string)$req->input('upute_pdf_url', ''),
     ];
 
     if (trim($data['naziv']) === '' || trim($data['skolska_godina']) === '') {

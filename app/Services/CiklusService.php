@@ -12,7 +12,7 @@ final class CiklusService
     $stmt = Db::connect()->prepare(
       "SELECT ID, SKOLSKA_GODINA, NAZIV, TO_CHAR(DATUM_OTVARANJA, 'YYYY-MM-DD HH24:MI:SS') AS DATUM_OTVARANJA,
               TO_CHAR(DATUM_ZATVARANJA, 'YYYY-MM-DD HH24:MI:SS') AS DATUM_ZATVARANJA,
-              STATUS, MAX_UCENIKA_PO_MENTORU, MAX_TEMA_PO_PREDMETU, UPUTE_PDF_URL, CREATED, UPDATED
+              STATUS, MAX_UCENIKA_PO_MENTORU, MAX_TEMA_PO_PREDMETU, CREATED, UPDATED
          FROM CIKLUSI
         WHERE DELETED = 0
         ORDER BY ID DESC"
@@ -26,7 +26,7 @@ final class CiklusService
     $stmt = Db::connect()->prepare(
       "SELECT ID, SKOLSKA_GODINA, NAZIV, TO_CHAR(DATUM_OTVARANJA, 'YYYY-MM-DD HH24:MI:SS') AS DATUM_OTVARANJA,
               TO_CHAR(DATUM_ZATVARANJA, 'YYYY-MM-DD HH24:MI:SS') AS DATUM_ZATVARANJA,
-              STATUS, MAX_UCENIKA_PO_MENTORU, MAX_TEMA_PO_PREDMETU, UPUTE_PDF_URL, CREATED, UPDATED
+              STATUS, MAX_UCENIKA_PO_MENTORU, MAX_TEMA_PO_PREDMETU, CREATED, UPDATED
          FROM CIKLUSI
         WHERE ID = :id AND DELETED = 0"
     );
@@ -39,15 +39,14 @@ final class CiklusService
   {
     $db = Db::connect();
     $stmt = $db->prepare(
-      'INSERT INTO CIKLUSI (SKOLSKA_GODINA, NAZIV, MAX_UCENIKA_PO_MENTORU, MAX_TEMA_PO_PREDMETU, UPUTE_PDF_URL)
-       VALUES (:skolska_godina, :naziv, :max_ucenika, :max_tema, :upute_pdf_url)'
+      'INSERT INTO CIKLUSI (SKOLSKA_GODINA, NAZIV, MAX_UCENIKA_PO_MENTORU, MAX_TEMA_PO_PREDMETU)
+       VALUES (:skolska_godina, :naziv, :max_ucenika, :max_tema)'
     );
     $stmt->execute([
       'skolska_godina' => $data['skolska_godina'],
       'naziv'          => $data['naziv'],
       'max_ucenika'    => !empty($data['max_ucenika_po_mentoru']) ? (int)$data['max_ucenika_po_mentoru'] : null,
       'max_tema'       => !empty($data['max_tema_po_predmetu']) ? (int)$data['max_tema_po_predmetu'] : null,
-      'upute_pdf_url'  => $data['upute_pdf_url'] ?? null,
     ]);
     Db::commit();
     return Db::lastId('CIKLUSI_ID_SEQ');
@@ -72,8 +71,7 @@ final class CiklusService
           SET SKOLSKA_GODINA         = :skolska_godina,
               NAZIV                  = :naziv,
               MAX_UCENIKA_PO_MENTORU = :max_ucenika,
-              MAX_TEMA_PO_PREDMETU   = :max_tema,
-              UPUTE_PDF_URL          = :upute_pdf_url
+              MAX_TEMA_PO_PREDMETU   = :max_tema
         WHERE ID = :id AND DELETED = 0'
     );
     $stmt->execute([
@@ -81,7 +79,6 @@ final class CiklusService
       'naziv'          => $data['naziv'],
       'max_ucenika'    => !empty($data['max_ucenika_po_mentoru']) ? (int)$data['max_ucenika_po_mentoru'] : null,
       'max_tema'       => !empty($data['max_tema_po_predmetu']) ? (int)$data['max_tema_po_predmetu'] : null,
-      'upute_pdf_url'  => $data['upute_pdf_url'] ?? null,
       'id'             => $id,
     ]);
     Db::commit();

@@ -7,11 +7,11 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 
 /**
- * Slanje magic-link mailova učenicima.
+ * Slanje mailova učenicima: magic link za prijavu i PDF upute (privitak).
  *
  * Pojedinačno:  MailService::posaljiLinkUceniku(...)
  * Skupno:       $mail = MailService::otvoriVezu();
- *               foreach (...) { MailService::posalji($mail, ...); }
+ *               foreach (...) { MailService::posalji($mail, ...); }       // ili posaljiUpute()
  *               MailService::zatvoriVezu($mail);
  *
  * Kod skupnog slanja cijela petlja koristi JEDNU SMTP vezu (SMTPKeepAlive),
@@ -91,16 +91,8 @@ final class MailService
     $link = rtrim((string)getenv('APP_URL') ?: '', '/') . '/#/prijava?token=' . rawurlencode($hash);
 
     try {
-      $mail->clearAddresses();
-
-      $mailTo = (string)getenv('MAIL_TO');
-      if ($mailTo !== '') {
-        $mail->addAddress($mailTo);
-        $mail->Subject = '[TEST -Umjesto: ' . $email . '] ' . self::NASLOV;
-      } else {
-        $mail->addAddress($email, $prezime . ' ' . $ime);
-        $mail->Subject = self::NASLOV;
-      }
+      $mail->clearAttachments();
+      self::postaviPrimatelja($mail, $email, $ime, $prezime, self::NASLOV);
 
       $mail->Body    =
         '<p>Pozdrav ' . htmlspecialchars($ime, ENT_QUOTES, 'UTF-8') . ',</p>' .
@@ -116,13 +108,77 @@ final class MailService
       $mail->send();
       return null;
     } catch (\Throwable $e) {
-      error_log('Mail greška (' . $email . '): ' . $e->getMessage());
-      $smtp = $mail->getSMTPInstance();
-      if ($smtp->connected()) {
-        $smtp->reset();
-      }
-      return 'Ne mogu poslati email: ' . $e->getMessage();
+      return self::nakonGreske($mail, $email, $e);
     }
+  }
+
+  /**
+   * Šalje PDF upute kao privitak preko već otvorene veze (vidi otvoriVezu()).
+   * Vraća null ili poruku greške. Mail ne sadrži link za prijavu - on se šalje zasebno.
+   */
+  public static function posaljiUpute(
+    PHPMailer $mail,
+    string $email,
+    string $ime,
+    string $prezime,
+    string $ciklusNaziv,
+    string $putanjaPdf,
+    string $nazivPrivitka
+  ): ?string {
+    try {
+      $mail->clearAttachments();
+      self::postaviPrimatelja($mail, $email, $ime, $prezime, 'Upute za odabir završnog rada - ' . $ciklusNaziv);
+      $mail->addAttachment($putanjaPdf, $nazivPrivitka, PHPMailer::ENCODING_BASE64, 'application/pdf');
+
+      $mail->Body    =
+        '<p>Pozdrav ' . htmlspecialchars($ime, ENT_QUOTES, 'UTF-8') . ',</p>' .
+        '<p>u privitku se nalaze upute za odabir teme završnog rada (' .
+        htmlspecialchars($ciklusNaziv, ENT_QUOTES, 'UTF-8') . ').</p>' .
+        '<p>Link za prijavu u sustav dobit ćete zasebnim mailom.</p>';
+      $mail->AltBody =
+        "Pozdrav {$ime},\n" .
+        "u privitku se nalaze upute za odabir teme završnog rada ({$ciklusNaziv}).\n" .
+        "Link za prijavu u sustav dobit ćete zasebnim mailom.";
+
+      $mail->send();
+      return null;
+    } catch (\Throwable $e) {
+      return self::nakonGreske($mail, $email, $e);
+    } finally {
+      $mail->clearAttachments();
+    }
+  }
+
+  /**
+   * Primatelj i naslov. Ako je u .env postavljen MAIL_TO (testni način),
+   * mail ide na tu adresu, a naslov dobiva oznaku stvarnog primatelja.
+   */
+  private static function postaviPrimatelja(PHPMailer $mail, string $email, string $ime, string $prezime, string $naslov): void
+  {
+    $mail->clearAddresses();
+
+    $mailTo = (string)getenv('MAIL_TO');
+    if ($mailTo !== '') {
+      $mail->addAddress($mailTo);
+      $mail->Subject = '[TEST -Umjesto: ' . $email . '] ' . $naslov;
+    } else {
+      $mail->addAddress($email, $prezime . ' ' . $ime);
+      $mail->Subject = $naslov;
+    }
+  }
+
+  /**
+   * Zapiše grešku i resetira SMTP sesiju, da petlja može nastaviti sa
+   * sljedećim učenikom (kao PHPMailerov primjer za mailing liste).
+   */
+  private static function nakonGreske(PHPMailer $mail, string $email, \Throwable $e): string
+  {
+    error_log('Mail greška (' . $email . '): ' . $e->getMessage());
+    $smtp = $mail->getSMTPInstance();
+    if ($smtp->connected()) {
+      $smtp->reset();
+    }
+    return 'Ne mogu poslati email: ' . $e->getMessage();
   }
 
   public static function zatvoriVezu(PHPMailer $mail): void

@@ -1,0 +1,6 @@
+# Zastita: preko weba je dostupna samo mapa public/.
+# Sve ostalo (.env s lozinkama, .git/, app/, config/, routes/, sql/, storage/,
+# vendor/, composer.phar) vraca 403 Forbidden.
+# Aplikacija se otvara na http://localhost/EkoZavrsni/public/
+# public/.htaccess sadrzi "Require all granted" koji za tu mapu ponistava ovu zabranu.
+Require all denied

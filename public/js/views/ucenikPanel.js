@@ -7,18 +7,13 @@ const UcenikPanelView = {
 
     let aktivniHtml = '<p class="muted">Trenutno nemate odabranu temu.</p>';
     if (aktivni) {
-      const mozePonistiti = cikId !== null && Number(aktivni.IDCIKLUSA) === cikId;
-      // Naziv teme ide u data- atribut (escapiran s UI.esc) i čita se kroz
-      // this.dataset, pa apostrof ili JS u nazivu ne mogu prekinuti onclick.
+      // Učenik ne može sam poništiti odabir - to radi samo administrator.
       aktivniHtml =
         '<div class="card">' +
         '<p><strong>' + UI.esc(aktivni.TEMA_NAZIV) + '</strong></p>' +
         '<p class="muted">' + UI.esc(aktivni.PREDMET_NAZIV) + ' — mentor: ' + UI.esc(aktivni.PROFESOR_NAZIV) + '</p>' +
         '<p class="muted">Odabrano: ' + View.fmtDate(aktivni.DATUM) + '</p>' +
-        (mozePonistiti
-          ? '<button class="btn danger small" data-naziv="' + UI.esc(aktivni.TEMA_NAZIV) + '"' +
-            ' onclick="Pages.ucenikPonisti(' + Number(aktivni.OID) + ', this.dataset.naziv)">Poništi odabir</button>'
-          : '<p class="muted">Ciklus je zaključan — odabir je konačan. Za promjenu se obratite administratoru.</p>') +
+        '<p class="muted">Odabir je konačan. Za promjenu se obratite administratoru.</p>' +
         '</div>';
     }
 
@@ -93,8 +88,8 @@ const UcenikPanelView = {
 
         ${povijestHtml}
       </div>`);
-  },
-
+  }
+/*
   ponistiModal(tema, onConfirm) {
     const body =
       '<p>Poništavate odabir teme <strong>' + UI.esc(tema) + '</strong>.</p>' +
@@ -120,4 +115,5 @@ const UcenikPanelView = {
       }
     };
   },
+  */
 };

@@ -15,6 +15,7 @@ use App\Controllers\Api\UvozController;
 use App\Controllers\Api\ExportController;
 use App\Controllers\Api\UcenikPanelController;
 use App\Controllers\Api\NastavnikPanelController;
+use App\Controllers\Api\UputeController;
 
 return function (Router $router): void {
   $auth = new AuthController();
@@ -89,4 +90,11 @@ return function (Router $router): void {
   $nastavnik = new NastavnikPanelController();
   $router->get('/api/nastavnik/teme',    [$nastavnik, 'teme']);
   $router->get('/api/nastavnik/odabiri', [$nastavnik, 'odabiri']);
+
+  $upute = new UputeController();
+  $router->get('/api/upute',          [$upute, 'index']);
+  $router->post('/api/upute/upload',  [$upute, 'upload']);
+  $router->get('/api/upute/preuzmi',  [$upute, 'preuzmi']);
+  $router->post('/api/upute/posalji', [$upute, 'posalji']);
+  $router->post('/api/upute/posalji-uceniku', [$upute, 'posaljiUceniku']);
 };

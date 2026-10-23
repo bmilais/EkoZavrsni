@@ -29,6 +29,7 @@ const View = {
         ['/admin/teme', 'Teme'],
         ['/admin/odabiri', 'Odabiri'],
         ['/admin/stanje', 'Stanje'],
+        ['/admin/upute', 'Upute'],
       ];
       links = '<nav>' + items.map(([r, l]) =>
         '<a href="#' + r + '"' + isActive(r) + '>' + l + '</a>'
@@ -43,7 +44,7 @@ const View = {
     const inicijali = (u.ime ? u.ime[0] : '') + (u.prezime ? u.prezime[0] : '');
 
     return '<div class="topbar">' +
-      '<a href="#/" class="brand">Admin Panel</a>' +
+      '<a href="#/" class="brand">' + (u.uloga === 'admin' ? 'Admin Panel' : 'Odabir završnog rada') + '</a>' +
       links +
       '<span class="user"><span class="avatar">' + UI.esc(inicijali.toUpperCase()) + '</span>' +
       UI.esc(u.ime + ' ' + u.prezime) +

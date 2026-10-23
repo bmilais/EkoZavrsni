@@ -49,31 +49,5 @@ const OdabirView = {
         <div class="page-toolbar">${toolbar}</div>
         ${UI.table(['ID', 'Učenik', 'Email', 'Tema', 'Predmet', 'Profesor', 'Datum', 'Status', 'Akcije'], data)}
       </div>`);
-  },
-
-  ponistiModal(ucenik, tema, onConfirm) {
-    const body =
-      '<p>Poništavate odabir učenika <strong>' + UI.esc(ucenik) + '</strong> za temu <strong>' + UI.esc(tema) + '</strong>.</p>' +
-      '<div class="field"><label>Obrazloženje poništenja (obavezno):</label>' +
-      '<textarea id="obrazlozenje" rows="4" cols="50" required></textarea></div>';
-    const foot =
-      '<button class="btn secondary" onclick="UI.closeModal()">Odustani</button>' +
-      '<button class="btn danger" id="modal-confirm">Poništi odabir</button>';
-
-    UI.modal({ title: 'Poništi odabir', body, foot });
-
-    document.getElementById('modal-confirm').onclick = async () => {
-      const txt = document.getElementById('obrazlozenje').value.trim();
-      if (!txt) { UI.toast('Obrazloženje je obavezno.', 'error'); return; }
-      const btn = document.getElementById('modal-confirm');
-      btn.disabled = true;
-      try {
-        await onConfirm(txt);
-        UI.closeModal();
-      } catch (e) {
-        btn.disabled = false;
-        UI.toast(e.message, 'error');
-      }
-    };
-  },
+  }
 };
